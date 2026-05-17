@@ -36,11 +36,17 @@ function switchView(viewId) {
 
 function initStorage() {
     const stored = localStorage.getItem("schema_config");
-    if (stored) CONFIG = { ...CONFIG, ...JSON.parse(stored) };
-    else {
+    if (stored) {
+        CONFIG = { ...CONFIG, ...JSON.parse(stored) };
+        // 🌟 清理可能存在的历史空白选项
+        if (CONFIG.classes) {
+            CONFIG.classes = CONFIG.classes.filter(c => c && c.trim() !== "");
+        }
+    } else {
         CONFIG.model = "";
         CONFIG.url = "";
-        CONFIG.classes = [""];
+        // 🌟 这里从 [""] 改成了 []，防止初始产生空白条
+        CONFIG.classes = [];
         CONFIG.defaultView = "view-home";
     }
 
@@ -323,7 +329,7 @@ async function handleGenerate() {
     } catch (error) {
         document.getElementById("progress-bar").style.background = "var(--error-color)"; showStatus(`错误：${error.message}`, "error");
     } finally {
-        btn.disabled = false; setTimeout(() => { btn.innerText = "执行生成并写入文档"; document.getElementById("progress-bar").style.background = ""; }, 2500);
+        btn.disabled = false; setTimeout(() => { btn.innerText = "执行生成"; document.getElementById("progress-bar").style.background = ""; }, 2500);
     }
 }
 
