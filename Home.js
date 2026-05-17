@@ -38,14 +38,12 @@ function initStorage() {
     const stored = localStorage.getItem("schema_config");
     if (stored) {
         CONFIG = { ...CONFIG, ...JSON.parse(stored) };
-        // 🌟 清理可能存在的历史空白选项
         if (CONFIG.classes) {
             CONFIG.classes = CONFIG.classes.filter(c => c && c.trim() !== "");
         }
     } else {
         CONFIG.model = "";
         CONFIG.url = "";
-        // 🌟 这里从 [""] 改成了 []，防止初始产生空白条
         CONFIG.classes = [];
         CONFIG.defaultView = "view-home";
     }
@@ -79,7 +77,9 @@ function showDevToast() {
 function initUIEvents() {
     document.getElementById("generate-btn").onclick = handleGenerate;
     document.getElementById("ai-topic-btn").onclick = () => fetchAndRenderTopics(3, false);
-
+    document.getElementById("topic").addEventListener("input", () => {
+        document.querySelectorAll(".topic-item").forEach(el => el.classList.remove("selected"));
+    });
     // 顶部导航触发
     document.getElementById("nav-home").onclick = () => switchView("view-home");
     document.getElementById("nav-user").onclick = () => {
@@ -236,7 +236,7 @@ async function fetchAndRenderTopics(targetCount, isDragging) {
     list.style.height = `${targetCount * ITEM_HEIGHT}px`; list.innerHTML = `<div class="thinking-center">Thinking...</div>`;
 
     try {
-        const prompt = `课程：${courseInput}。大类：${topicInput.value}。请拆分为正好 ${targetCount} 个课时标题。难度从易到难，让学生容易理解学习，只返回纯JSON数组，绝对禁止 Markdown。`;
+        const prompt = `课程：${courseInput}。大类：${topicInput.value}。请拆分为正好 ${targetCount} 个课时标题。难度从易到难，让学生容易理解学习，只返回纯JSON数组，绝对禁止 Markdown。禁止有（如课时一，课时二）标号的现象`;
         const headers = { "Content-Type": "application/json" };
         if (CONFIG.key) headers["Authorization"] = `Bearer ${CONFIG.key}`;
 
@@ -336,7 +336,12 @@ async function handleGenerate() {
 async function fetchLessonPlanFromAI(data) {
     const jsonFormatStr = `{"objectives":"目的","practical_content":"内容","practical_equipment":"设备","focus":"重点","difficulties":"难点","aids":"辅助","process_org":"组织","process_new":"新课","process_summary":"小结","process_hw":"作业","postscript":"后记"}`;
 
-    let systemPrompt = `身份：上海中等职业技术学校讲师。专业【${data.major}】、课程【${data.course}】、课题【${data.topic}】。
+    let rolePrompt = `身份：上海中等职业技术学校讲师。专业【${data.major}】、课程【${data.course}】、课题【${data.topic}】。`;
+    if (data.courseType === "实训课") {
+        rolePrompt = `身份：上海中等职业技术学校【实训指导高级教师】。你现在正在【实训车间】为学生上【实训操作课】。专业【${data.major}】、实操课题【${data.topic}】。`;
+    }
+
+    let systemPrompt = `${rolePrompt}
 【极其严格的系统规则（违反将导致程序崩溃）】：
 1. 仅输出单一纯JSON对象。所有的值必须是纯文本字符串。绝对禁止包含任何 Markdown 格式符号。
 2. 【教学目的】：绝对不能超过 25 个字。
@@ -347,8 +352,13 @@ async function fetchLessonPlanFromAI(data) {
 7.  教学重点与教学难点要有1，2，3分类，每个分类不超过15个字。教学重点至少有3个，教学难点至少有1个，如果课题难度较高就多写几个。
 8.  归纳小结是对整节课讲的内容进行重点总结，不超过50字，但也不要太简单（例如：本节课我们讲解了....）
 9.  教学辅助手段可以有PPT课件，3D拆解视频，操作视频。每个词中间用逗号分割
-10. 布置作业要与当节课授课内容有关，简单一点的作业。
-返回结构体：${jsonFormatStr}`;
+10. 布置作业要与当节课授课内容有关，简单一点的作业。`;
+
+    if (data.courseType === "实训课") {
+        systemPrompt += `\n11. 【实训课生死线指令】：当前是实操课！【讲授新课】和【组织教学】环节必须围绕“实物拆装、设备操作、工具使用”展开。绝对禁止长篇大论讲纯理论！【必须严格设计学生的分组实操环节】（如：将学生分为4人一组进行动手操作，教师巡回指导等）！`;
+    }
+
+    systemPrompt += `\n返回结构体：${jsonFormatStr}`;
 
     let messagesPayload = [];
     if (uploadedImages.length > 0) {
@@ -383,13 +393,11 @@ async function fetchLessonPlanFromAI(data) {
         rawText = rawText.substring(startIndex, endIndex + 1);
     }
 
-
     rawText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
 
     try {
         return JSON.parse(rawText);
     } catch (e) {
-
         let safeText = rawText.replace(/\n/g, "\\n").replace(/\\n\{/g, "{\n").replace(/\\n\}/g, "\n}").replace(/",\\n/g, "\",\n").replace(/\\n"/g, "\n\"");
         try {
             return JSON.parse(safeText);
