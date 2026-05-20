@@ -1,10 +1,36 @@
 ﻿Office.onReady((info) => {
     if (info.host === Office.HostType.Word) {
+        injectCustomStyles();
         initStorage();
         initUIEvents();
         initDragToLoad();
     }
 });
+
+function injectCustomStyles() {
+    if (document.getElementById("schemaai-custom-styles")) return;
+    const style = document.createElement("style");
+    style.id = "schemaai-custom-styles";
+    style.innerHTML = `
+        .image-item .img-delete {
+            opacity: 0;
+            background-color: #ffffff;
+            transition: all 0.2s ease;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        .image-item:hover .img-delete {
+            opacity: 1;
+        }
+        .image-item .img-delete:hover {
+            background-color: #ff3b30 !important;
+        }
+        .image-item .img-delete:hover svg line {
+            stroke: #ffffff !important;
+        }
+    `;
+    document.head.appendChild(style);
+}
 
 let CONFIG = { teacher: "", major: "", model: "", url: "", key: "", classes: [], defaultView: "view-home" };
 let selectedClass = "";
@@ -12,10 +38,8 @@ let currentTopicCount = 3;
 let generatedTopics = [];
 const ITEM_HEIGHT = 43;
 let uploadedImages = [];
+let lastRootView = "view-home";
 
-let lastRootView = "view-home"; // 记录跳转前的根视图（主页或教案）
-
-// 可用启动页面列表
 const AVAILABLE_VIEWS = [
     { id: "view-home", name: "主页" },
     { id: "view-main", name: "教案生成页面" }
@@ -25,11 +49,7 @@ function showStatus(text, type = "info") { document.getElementById("status-msg")
 function clearStatus() { document.getElementById("status-msg").innerHTML = ""; }
 
 function switchView(viewId) {
-
-    if (viewId === "view-home" || viewId === "view-main") {
-        lastRootView = viewId;
-    }
-
+    if (viewId === "view-home" || viewId === "view-main") lastRootView = viewId;
     document.querySelectorAll(".view-section").forEach(el => el.classList.remove("active"));
     document.getElementById(viewId).classList.add("active");
 }
@@ -38,30 +58,22 @@ function initStorage() {
     const stored = localStorage.getItem("schema_config");
     if (stored) {
         CONFIG = { ...CONFIG, ...JSON.parse(stored) };
-        if (CONFIG.classes) {
-            CONFIG.classes = CONFIG.classes.filter(c => c && c.trim() !== "");
-        }
+        if (CONFIG.classes) CONFIG.classes = CONFIG.classes.filter(c => c && c.trim() !== "");
     } else {
-        CONFIG.model = "";
-        CONFIG.url = "";
-        CONFIG.classes = [];
-        CONFIG.defaultView = "view-home";
+        CONFIG.model = ""; CONFIG.url = ""; CONFIG.classes = []; CONFIG.defaultView = "view-home";
     }
 
     const viewSelect = document.getElementById("setting-default-view");
     viewSelect.innerHTML = "";
     AVAILABLE_VIEWS.forEach(v => {
         let opt = document.createElement("option");
-        opt.value = v.id;
-        opt.innerText = v.name;
+        opt.value = v.id; opt.innerText = v.name;
         viewSelect.appendChild(opt);
     });
 
-    if (AVAILABLE_VIEWS.find(v => v.id === CONFIG.defaultView)) {
-        switchView(CONFIG.defaultView);
-    } else {
-        switchView("view-home");
-    }
+    viewSelect.value = CONFIG.defaultView;
+    if (AVAILABLE_VIEWS.find(v => v.id === CONFIG.defaultView)) switchView(CONFIG.defaultView);
+    else switchView("view-home");
 
     renderClassDropdown();
 }
@@ -76,11 +88,31 @@ function showDevToast() {
 
 function initUIEvents() {
     document.getElementById("generate-btn").onclick = handleGenerate;
-    document.getElementById("ai-topic-btn").onclick = () => fetchAndRenderTopics(3, false);
+
+    document.getElementById("ai-topic-btn").onclick = () => {
+        const courseInput = document.getElementById("course");
+        const topicInput = document.getElementById("topic");
+
+        clearStatus();
+        if (!courseInput.value) {
+            courseInput.parentElement.classList.add("error-flash");
+            setTimeout(() => courseInput.parentElement.classList.remove("error-flash"), 400);
+            showStatus("提示：请先填写【课程名称】", "error");
+            return;
+        }
+        if (!topicInput.value) {
+            document.getElementById("topic-wrapper").classList.add("error-flash");
+            setTimeout(() => document.getElementById("topic-wrapper").classList.remove("error-flash"), 400);
+            showStatus("提示：请先填写【章节课题】大类", "error");
+            return;
+        }
+        fetchAndRenderTopics(3, false);
+    };
+
     document.getElementById("topic").addEventListener("input", () => {
         document.querySelectorAll(".topic-item").forEach(el => el.classList.remove("selected"));
     });
-    // 顶部导航触发
+
     document.getElementById("nav-home").onclick = () => switchView("view-home");
     document.getElementById("nav-user").onclick = () => {
         document.getElementById("setting-teacher").value = CONFIG.teacher;
@@ -135,6 +167,32 @@ function initUIEvents() {
     });
 
     document.getElementById("add-img-btn").onclick = () => document.getElementById("img-upload-input").click();
+    document.getElementById("clipboard-img-btn").onclick = async () => {
+        try {
+            const items = await navigator.clipboard.read();
+            let found = false;
+            for (const item of items) {
+                const types = item.types.filter(t => t.startsWith('image/'));
+                for (const type of types) {
+                    const blob = await item.getType(type);
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        uploadedImages.push({
+                            id: "IMG_" + Math.random().toString(36).substr(2, 6),
+                            base64: e.target.result,
+                            desc: ""
+                        });
+                        renderImageGallery();
+                    };
+                    reader.readAsDataURL(blob);
+                    found = true;
+                }
+            }
+            if (!found) showStatus("剪贴板中未检测到图片", "warn");
+        } catch (err) {
+            showStatus("请授予剪贴板权限，或直接按 Ctrl+V 粘贴", "error");
+        }
+    };
     document.getElementById("img-upload-input").onchange = (e) => {
         const files = Array.from(e.target.files);
         files.forEach(file => {
@@ -148,6 +206,23 @@ function initUIEvents() {
         });
         e.target.value = "";
     };
+
+    document.addEventListener('paste', (e) => {
+        if (!e.clipboardData) return;
+        const items = e.clipboardData.items;
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].type.indexOf('image') !== -1) {
+                const blob = items[i].getAsFile();
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    uploadedImages.push({ id: "IMG_" + Math.random().toString(36).substr(2, 6), base64: event.target.result, desc: "" });
+                    renderImageGallery();
+                    showStatus("已成功粘贴图片", "success");
+                };
+                reader.readAsDataURL(blob);
+            }
+        }
+    });
 
     const overlay = document.getElementById("modal-overlay");
     document.querySelectorAll(".btn-cancel").forEach(btn => btn.onclick = () => overlay.classList.remove("open"));
@@ -219,7 +294,6 @@ function renderClassDropdown() {
     dropdown.appendChild(addItem);
 }
 
-// AI 课题拆解
 async function fetchAndRenderTopics(targetCount, isDragging) {
     const topicInput = document.getElementById("topic");
     const courseInput = document.getElementById("course").value;
@@ -227,35 +301,94 @@ async function fetchAndRenderTopics(targetCount, isDragging) {
     const list = document.getElementById("topic-list");
     const aiBtn = document.getElementById("ai-topic-btn");
 
-    if (!CONFIG.url) { alert(" 错误：未配置 API 接口地址"); return; }
-    if (!topicInput.value || !courseInput) {
-        document.getElementById("topic-wrapper").classList.add("error-flash");
-        setTimeout(() => document.getElementById("topic-wrapper").classList.remove("error-flash"), 400); return;
+    if (!CONFIG.url) {
+        const setBtn = document.getElementById("nav-settings");
+        setBtn.classList.add("error-flash");
+        setTimeout(() => setBtn.classList.remove("error-flash"), 400);
+        showStatus("提示：未配置 API 接口地址", "error");
+        return;
     }
-    currentTopicCount = targetCount; panel.style.display = "block"; aiBtn.classList.add("disabled");
-    list.style.height = `${targetCount * ITEM_HEIGHT}px`; list.innerHTML = `<div class="thinking-center">Thinking...</div>`;
+
+    currentTopicCount = targetCount;
+    panel.style.display = "block";
+    aiBtn.classList.add("disabled");
+    list.style.height = `${targetCount * ITEM_HEIGHT}px`;
+    list.innerHTML = `<div class="thinking-center">Thinking...</div>`;
 
     try {
-        const prompt = `课程：${courseInput}。大类：${topicInput.value}。请拆分为正好 ${targetCount} 个课时标题。难度从易到难，让学生容易理解学习，只返回纯JSON数组，绝对禁止 Markdown。禁止有（如课时一，课时二）标号的现象`;
+        const prompt = `课程：${courseInput}。大类：${topicInput.value}。请拆分为正好 ${targetCount} 个课时标题。难度从易到难，让学生容易理解学习。只返回一个纯JSON数组，例如 ["课题1", "课题2", "课题3"]。绝对禁止包含任何解释、前缀（如课题1：）、Markdown 或额外文本。`;
         const headers = { "Content-Type": "application/json" };
         if (CONFIG.key) headers["Authorization"] = `Bearer ${CONFIG.key}`;
 
-        const response = await fetch(CONFIG.url, { method: "POST", headers: headers, body: JSON.stringify({ model: CONFIG.model, messages: [{ role: "user", content: prompt }], temperature: 0.3 }) });
-        if (!response.ok) throw new Error("接口连接被拒");
-        let rawText = (await response.json()).choices[0].message.content.replace(/```json/g, '').replace(/```/g, '').trim();
+        const isDeepSeek = /^deepseek(-v4)?-(flash|pro)$/i.test(CONFIG.model);
+        const requestBody = {
+            model: CONFIG.model,
+            messages: [{ role: "user", content: prompt }],
+            temperature: 0.3
+        };
+        if (isDeepSeek) {
+            requestBody.thinking = { type: "disabled" };
+        }
+
+        const response = await fetch(CONFIG.url, {
+            method: "POST",
+            headers: headers,
+            body: JSON.stringify(requestBody)
+        });
+        if (!response.ok) {
+            const errText = await response.text().catch(() => "无返回");
+            throw new Error(`接口返回错误 (${response.status}): ${errText}`);
+        }
+
+        let rawText = (await response.json()).choices[0].message.content;
+        rawText = rawText.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+        rawText = rawText.replace(/```json|```/gi, '').trim();
+
+        if (rawText.startsWith('{')) {
+            const obj = JSON.parse(rawText);
+            const array = obj.topics || obj.items || obj.courses || Object.values(obj).find(Array.isArray);
+            if (Array.isArray(array)) {
+                rawText = JSON.stringify(array);
+            } else {
+                throw new Error("返回的JSON对象中未找到数组");
+            }
+        }
+
+        if (!rawText.startsWith('[')) {
+            const arrMatch = rawText.match(/\[([\s\S]*)\]/);
+            if (arrMatch) {
+                rawText = '[' + arrMatch[1] + ']';
+            } else {
+                throw new Error("未找到有效的JSON数组");
+            }
+        }
+
         generatedTopics = JSON.parse(rawText);
+        if (!Array.isArray(generatedTopics)) throw new Error("解析结果不是数组");
+
         list.innerHTML = "";
         generatedTopics.forEach((text, index) => {
-            const item = document.createElement("div"); item.className = "topic-item placeholder";
+            const item = document.createElement("div");
+            item.className = "topic-item placeholder";
             setTimeout(() => {
-                item.className = "topic-item slide-in selected"; if (index > 0) item.classList.remove("selected");
-                item.style.animationDelay = `${index * 0.05}s`; item.innerText = text.replace(/\*\*/g, "").replace(/\*/g, "");
+                item.className = "topic-item slide-in selected";
+                if (index > 0) item.classList.remove("selected");
+                item.style.animationDelay = `${index * 0.05}s`;
+                item.innerText = text.replace(/\*\*/g, "").replace(/\*/g, "");
             }, 50);
-            item.onclick = () => { document.querySelectorAll(".topic-item").forEach(el => el.classList.remove("selected")); item.classList.add("selected"); };
+            item.onclick = () => {
+                document.querySelectorAll(".topic-item").forEach(el => el.classList.remove("selected"));
+                item.classList.add("selected");
+            };
             list.appendChild(item);
         });
         setTimeout(() => { list.style.height = "auto"; }, 300);
-    } catch (error) { list.innerHTML = `<div class="thinking-center" style="color:var(--error-color);">失败: ${error.message}</div>`; } finally { aiBtn.classList.remove("disabled"); }
+    } catch (error) {
+        const errMsg = error.message || error.toString() || "未知错误";
+        list.innerHTML = `<div class="thinking-center" style="color:var(--error-color);">失败: ${errMsg}</div>`;
+    } finally {
+        aiBtn.classList.remove("disabled");
+    }
 }
 
 function initDragToLoad() {
@@ -282,6 +415,7 @@ function initDragToLoad() {
         }
     });
 }
+
 function renderDragSlots(topicsArray) {
     const list = document.getElementById("topic-list"); list.innerHTML = "";
     topicsArray.forEach((text, index) => {
@@ -296,16 +430,44 @@ function renderDragSlots(topicsArray) {
 let progressInterval = null;
 function updateProgress(width) { document.getElementById("progress-container").style.display = "block"; document.getElementById("progress-bar").style.width = width + "%"; }
 
-// 核心生成
 async function handleGenerate() {
     const btn = document.getElementById("generate-btn");
     const selectedItem = document.querySelector(".topic-item.selected");
     const finalTopic = selectedItem ? selectedItem.innerText : document.getElementById("topic").value;
 
     clearStatus();
-    if (!finalTopic || !document.getElementById("course").value) { alert(" 错误：请填写【课程名称】与【章节课题】"); return; }
-    if (!selectedClass) { alert(" 错误：请选择或新建【授课班级】！"); return; }
-    if (!CONFIG.teacher || !CONFIG.major || !CONFIG.url) { alert(" 错误：系统未就绪！\n请先配置您的信息及API。"); return; }
+    if (!document.getElementById("course").value) {
+        document.getElementById("course").parentElement.classList.add("error-flash");
+        setTimeout(() => document.getElementById("course").parentElement.classList.remove("error-flash"), 400);
+        showStatus("阻断：请填写【课程名称】", "error");
+        return;
+    }
+    if (!finalTopic) {
+        document.getElementById("topic-wrapper").classList.add("error-flash");
+        setTimeout(() => document.getElementById("topic-wrapper").classList.remove("error-flash"), 400);
+        showStatus("阻断：请填写或生成【章节课题】", "error");
+        return;
+    }
+    if (!selectedClass) {
+        document.getElementById("class-select-wrapper").classList.add("error-flash");
+        setTimeout(() => document.getElementById("class-select-wrapper").classList.remove("error-flash"), 400);
+        showStatus("阻断：请选择或新建【授课班级】", "error");
+        return;
+    }
+    if (!CONFIG.teacher || !CONFIG.major) {
+        const userBtn = document.getElementById("nav-user");
+        userBtn.classList.add("error-flash");
+        setTimeout(() => userBtn.classList.remove("error-flash"), 400);
+        showStatus("阻断：请点击头像设置【教师与专业】", "error");
+        return;
+    }
+    if (!CONFIG.url) {
+        const setBtn = document.getElementById("nav-settings");
+        setBtn.classList.add("error-flash");
+        setTimeout(() => setBtn.classList.remove("error-flash"), 400);
+        showStatus("阻断：请点击齿轮配置【API接口】", "error");
+        return;
+    }
 
     const formData = {
         teacher: CONFIG.teacher, major: CONFIG.major, classStr: selectedClass,
@@ -321,7 +483,7 @@ async function handleGenerate() {
         let aiResponseJSON = await fetchLessonPlanFromAI(formData);
         if (formData.courseType === "理论课") { aiResponseJSON.practical_content = ""; aiResponseJSON.practical_equipment = ""; }
 
-        updateProgress(70); showStatus(`正在等待 ${modelNameDisplay} 响应...`, "info");
+        updateProgress(70); showStatus(`等待 ${modelNameDisplay} 响应...`, "info");
         await writeToWord(formData, aiResponseJSON);
 
         updateProgress(100); showStatus("教案排版写入成功", "success");
@@ -336,35 +498,43 @@ async function handleGenerate() {
 async function fetchLessonPlanFromAI(data) {
     const jsonFormatStr = `{"objectives":"目的","practical_content":"内容","practical_equipment":"设备","focus":"重点","difficulties":"难点","aids":"辅助","process_org":"组织","process_new":"新课","process_summary":"小结","process_hw":"作业","postscript":"后记"}`;
 
-    let rolePrompt = `身份：上海中等职业技术学校讲师。专业【${data.major}】、课程【${data.course}】、课题【${data.topic}】。`;
+    let rolePrompt = `身份：上海中等职业技术学校讲师。专业${data.major}、课程${data.course}、课题${data.topic}。`;
     if (data.courseType === "实训课") {
-        rolePrompt = `身份：上海中等职业技术学校【实训指导高级教师】。你现在正在【实训车间】为学生上【实训操作课】。专业【${data.major}】、实操课题【${data.topic}】。`;
+        rolePrompt = `身份：上海中等职业技术学校【实训指导高级教师】。正在实训场地上实训操作课。专业${data.major}、实操课题${data.topic}。`;
     }
 
     let systemPrompt = `${rolePrompt}
-【极其严格的系统规则（违反将导致程序崩溃）】：
-1. 仅输出单一纯JSON对象。所有的值必须是纯文本字符串。绝对禁止包含任何 Markdown 格式符号。
-2. 【教学目的】：绝对不能超过 25 个字。
-3. 【组织教学】：写授课方式，比如小游戏，举例子。
-4. 【讲授新课】：字数控制在 200-350 字左右。必须直接从“1. [小标题名称]”开始，同时要有2，3小标题内容，授课流程要连贯易懂。绝对禁止生成总标题！绝对禁止在结尾输出“字数：xxx”之类的信息。必须包含生活化比喻。
-5. 【教学后记】：字数不能超过 50 个字。这是写给教务处看的反思，不要有建议字眼（如：学生掌握良好，下次需加强实物演示）。
-6. 【换行规则】：文本内需要换行处，必须输出明文 \\n，绝对禁止物理回车。
-7.  教学重点与教学难点要有1，2，3分类，每个分类不超过15个字。教学重点至少有3个，教学难点至少有1个，如果课题难度较高就多写几个。
-8.  归纳小结是对整节课讲的内容进行重点总结，不超过50字，但也不要太简单（例如：本节课我们讲解了....）
-9.  教学辅助手段可以有PPT课件，3D拆解视频，操作视频。每个词中间用逗号分割
-10. 布置作业要与当节课授课内容有关，简单一点的作业。`;
+请务必遵守以下规则：
+1. 仅输出单一纯JSON对象。所有的值必须是纯文本。绝对禁止包含 Markdown，不允许输出除JSON对象外其他多余语句。
+2. 教学目的：不能超过 25 字。
+3. 组织教学：写授课方式，如小游戏，举例子。
+4. 讲授新课：300-450字。必须从“1. 小标题名称”开始，包含2-5小标题，包含生活化比喻。禁止生成总标题和结尾字数统计！
+5. 教学后记：不超过50字的反思，禁止建议字眼。
+6. 换行规则：需要换行处输出明文 \\n，绝对禁止物理回车。
+7.  教学重点与难点要有1，2，3序号排序，每个序号独占一行，禁止用逗号分隔，每项不超过15字。重点至少3个，难点至少1个。
+8.  归纳小结是对内容的重点总结，不超过50字。
+9.  教学辅助手段逗号分割。
+10. 布置简单相关作业,不要生成序号`;
 
     if (data.courseType === "实训课") {
-        systemPrompt += `\n11. 【实训课生死线指令】：当前是实操课！【讲授新课】和【组织教学】环节必须围绕“实物拆装、设备操作、工具使用”展开。绝对禁止长篇大论讲纯理论！【必须严格设计学生的分组实操环节】（如：将学生分为4人一组进行动手操作，教师巡回指导等）！`;
+        systemPrompt += `\n11. 实训指令：讲授新课和组织教学必须围绕“实物拆装、设备操作”展开。绝对禁止纯理论！必须设计学生分组实操环节！`;
     }
 
-    systemPrompt += `\n返回结构体：${jsonFormatStr}`;
+    systemPrompt += `\n返回结构：${jsonFormatStr}`;
+
+    const headers = { "Content-Type": "application/json" };
+    if (CONFIG.key) headers["Authorization"] = `Bearer ${CONFIG.key}`;
+
+    const isDeepSeekV4 = /^deepseek(-v4)?-(flash|pro)$/i.test(CONFIG.model);
 
     let messagesPayload = [];
     if (uploadedImages.length > 0) {
-        let imgInstructions = `\n\n【排版配图特殊指令】：\n教师已在前端上传了 ${uploadedImages.length} 张辅助教学图片：\n`;
-        uploadedImages.forEach((img, i) => { imgInstructions += `${i + 1}. 描述："${img.desc || '未命名配图'}" (占位符代码：{{${img.id}}})\n`; });
-        imgInstructions += `请在你生成的【讲授新课】段落中，在你认为需要配图的位置，独占一行输出对应的占位符代码！`;
+        // 包含图片base64 + 让模型自行描述图片
+        let imgInstructions = `\n\n排版配图指令：\n前端已上传 ${uploadedImages.length} 张图片。请仔细观察每张图片，并为需要配图的讲授新课内容，在合适位置独占一行输出对应的占位符代码：\n`;
+        uploadedImages.forEach((img, i) => {
+            imgInstructions += `${i + 1}. 第${i + 1}张图片 (占位符：{{${img.id}}})\n`;
+        });
+        imgInstructions += `请在讲授新课需要配图处，独占一行输出对应的占位符代码！`;
         systemPrompt += imgInstructions;
 
         let contentArray = [{ type: "text", text: systemPrompt }];
@@ -376,33 +546,97 @@ async function fetchLessonPlanFromAI(data) {
     } else {
         messagesPayload = [{ role: "user", content: systemPrompt }];
     }
-
-    const headers = { "Content-Type": "application/json" };
-    if (CONFIG.key) headers["Authorization"] = `Bearer ${CONFIG.key}`;
-
-    let response;
-    try { response = await fetch(CONFIG.url, { method: "POST", headers: headers, body: JSON.stringify({ model: CONFIG.model, messages: messagesPayload, temperature: 0.7, max_tokens: 4096 }) }); }
-    catch (e) { throw new Error("连接失败，请检查 Base URL"); }
-    if (!response.ok) throw new Error(`服务端异常 (HTTP ${response.status})`);
-
-    let rawText = (await response.json()).choices[0].message.content;
-
-    let startIndex = rawText.indexOf('{');
-    let endIndex = rawText.lastIndexOf('}');
-    if (startIndex !== -1 && endIndex !== -1) {
-        rawText = rawText.substring(startIndex, endIndex + 1);
+    async function makeRequest(payload, description = "") {
+        const requestBody = {
+            model: CONFIG.model,
+            messages: payload,
+            max_tokens: 4096
+        };
+        if (isDeepSeekV4) {
+            requestBody.thinking = { type: "enabled" };
+        } else {
+            requestBody.temperature = 0.7;
+        }
+        const response = await fetch(CONFIG.url, {
+            method: "POST",
+            headers: headers,
+            body: JSON.stringify(requestBody)
+        });
+        if (!response.ok) {
+            throw new Error(`服务端异常 (HTTP ${response.status})${description ? ': ' + description : ''}`);
+        }
+        let rawText = (await response.json()).choices[0].message.content;
+        return rawText;
     }
 
-    rawText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
+    function parseResponse(rawText) {
+        rawText = rawText.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+        rawText = rawText.replace(/```json/gi, '').replace(/```/g, '').trim();
+
+        if (rawText.startsWith('[')) rawText = rawText.replace(/^\[/, '').replace(/\]$/, '').trim();
+
+        let startIndex = rawText.indexOf('{');
+        if (startIndex !== -1) {
+            rawText = rawText.substring(startIndex);
+            let openBraces = (rawText.match(/\{/g) || []).length;
+            let closeBraces = (rawText.match(/\}/g) || []).length;
+
+            while (closeBraces < openBraces) {
+                if (rawText.endsWith('"')) rawText += '"}';
+                else if (rawText.endsWith(',')) rawText = rawText.slice(0, -1) + '}';
+                else rawText += '"}';
+                closeBraces++;
+            }
+
+            let endIndex = rawText.lastIndexOf('}');
+            if (endIndex !== -1) {
+                rawText = rawText.substring(0, endIndex + 1);
+            }
+        }
+
+        try {
+            return JSON.parse(rawText);
+        } catch (e) {
+            let safeText = rawText.replace(/\n/g, "\\n").replace(/\r/g, "");
+            safeText = safeText.replace(/,\s*\}/g, '}');
+            try {
+                return JSON.parse(safeText);
+            } catch (e2) {
+                throw new Error("模型输出了严重损坏的数据，请更换模型重试");
+            }
+        }
+    }
 
     try {
-        return JSON.parse(rawText);
-    } catch (e) {
-        let safeText = rawText.replace(/\n/g, "\\n").replace(/\\n\{/g, "{\n").replace(/\\n\}/g, "\n}").replace(/",\\n/g, "\",\n").replace(/\\n"/g, "\n\"");
+
+        const rawText = await makeRequest(messagesPayload);
+        return parseResponse(rawText);
+    } catch (error) {
+
+        if (uploadedImages.length === 0) {
+            throw error; 
+        }
+
+        const missingDescs = uploadedImages.some(img => !img.desc || img.desc.trim() === '');
+        if (missingDescs) {
+            throw new Error("当前模型可能不支持多模态识别，请点击图片填写“图片简述”，填写后工具将自动在文本中插入图片。");
+        }
+
+        let fallbackPrompt = systemPrompt; 
+        let imgInstructions = `\n\n排版配图指令（无法看到图片，根据描述决策）：\n前端已上传 ${uploadedImages.length} 张图片，它们的描述如下，请根据描述在讲授新课中合适的位置独占一行插入对应的占位符代码。\n`;
+        uploadedImages.forEach((img, i) => {
+            imgInstructions += `${i + 1}. 描述："${img.desc || '未命名配图'}" (占位符：{{${img.id}}})\n`;
+        });
+        imgInstructions += `请在讲授新课需要配图处，独占一行输出对应的占位符代码！`;
+        fallbackPrompt += imgInstructions;
+        fallbackPrompt += `\n返回结构：${jsonFormatStr}`;
+
+        const fallbackPayload = [{ role: "user", content: fallbackPrompt }];
         try {
-            return JSON.parse(safeText);
-        } catch (e2) {
-            throw new Error("模型输出了损坏的 JSON 数据");
+            const rawText = await makeRequest(fallbackPayload, "降级为纯文本模式后");
+            return parseResponse(rawText);
+        } catch (retryError) {
+            throw new Error(`图片上传失败: ${retryError.message}`);
         }
     }
 }
@@ -411,6 +645,7 @@ async function writeToWord(formData, aiData) {
     return Word.run(async (context) => {
         const today = new Date();
         const dateStr = `${today.getFullYear()}年${String(today.getMonth() + 1).padStart(2, '0')}月${String(today.getDate()).padStart(2, '0')}日`;
+
         const contentMapping = {
             "cc_teacher": formData.teacher || "", "cc_date": dateStr, "cc_major": formData.major || "",
             "cc_class": formData.classStr || "", "cc_course": formData.course || "",
@@ -423,21 +658,39 @@ async function writeToWord(formData, aiData) {
             "cc_postscript": String(aiData.postscript || "")
         };
 
+        function isTitleLine(line) {
+            const trimmed = line.trim();
+            // 匹配：数字开头 + 可选空格 + 标题符号（点、顿号、括号等）
+            return /^\d+\s*[\.．、)）]/.test(trimmed);
+        }
+
         const allControls = context.document.contentControls;
         allControls.load("items/tag, items/title");
         await context.sync();
 
         let writeCount = 0;
+        let imgCounter = 1;
+        const targetKeys = ["cc_process_org", "cc_process_new", "cc_process_summary", "cc_process_hw", "cc_course_type"];
+        const headerKeys = ["cc_teacher", "cc_date", "cc_major", "cc_class", "cc_course", "cc_topic"];
+
         for (const [key, rawText] of Object.entries(contentMapping)) {
+            if (!rawText || rawText.trim() === "") continue;
+
             const targetControls = allControls.items.filter(c => c.tag === key || c.title === key);
             let cleanText = rawText.replace(/\*\*/g, "").replace(/\*/g, "").replace(/#/g, "").replace(/（字数：.*?）/g, "").replace(/\(字数[：:].*?\)/g, "");
             cleanText = cleanText.replace(/\n\s*\n+/g, "\n").trim();
 
             for (const targetControl of targetControls) {
+                let isFirstInsert = true;
+
+                // 图文混排（图片占位符处理）
                 if (key === "cc_process_new" && uploadedImages.length > 0) {
                     let parts = cleanText.split(/({{IMG_[a-zA-Z0-9]+}})/).filter(p => p !== "");
-                    let isFirst = true;
-                    if (parts.length === 0) targetControl.insertText("", "Replace");
+
+                    if (parts.length === 0) {
+                        let r = targetControl.insertText(" ", "Replace");
+                        r.font.spacing = 1;
+                    }
 
                     for (let part of parts) {
                         let match = part.match(/^{{(IMG_[a-zA-Z0-9]+)}}$/);
@@ -445,17 +698,66 @@ async function writeToWord(formData, aiData) {
                             let imgObj = uploadedImages.find(i => i.id === match[1]);
                             if (imgObj) {
                                 let pureBase64 = imgObj.base64.split(',')[1];
-                                let pic = targetControl.insertInlinePictureFromBase64(pureBase64, isFirst ? "Replace" : "End");
-                                pic.lockAspectRatio = true; pic.width = 220;
+                                targetControl.insertText("\n　　　　　　", "End");
+
+                                let pic = targetControl.insertInlinePictureFromBase64(pureBase64, "End");
+                                pic.lockAspectRatio = true;
+                                pic.width = 220;
+
+                                let descriptionStr = imgObj.desc || "自动变速箱配件";
+                                let captionText = `\n　　　　　　图${imgCounter}  ${descriptionStr}\n`;
+                                let captionRange = targetControl.insertText(captionText, "End");
+
+                                captionRange.font.name = "宋体";
+                                captionRange.font.size = 10.5;
+                                captionRange.font.color = "#8E8E93";
+                                captionRange.font.spacing = 1;
+                                captionRange.font.bold = false;
+
+                                imgCounter++;
+                                isFirstInsert = false;
                             }
                         } else {
-                            targetControl.insertText(part, isFirst ? "Replace" : "End");
+                            let lines = part.split('\n');
+                            for (let line of lines) {
+                                if (line.trim() !== "") {
+                                    let insertStr = isFirstInsert ? line.trim() : "\n" + line.trim();
+                                    let textRange = targetControl.insertText(insertStr, isFirstInsert ? "Replace" : "End");
+                                    textRange.font.name = "宋体";
+                                    textRange.font.size = 12;
+                                    textRange.font.color = "#1C1C1E";
+                                    textRange.font.spacing = 1;
+                                    textRange.font.bold = isTitleLine(line);
+
+                                    isFirstInsert = false;
+                                }
+                            }
                         }
-                        isFirst = false;
                     }
                 } else {
-                    if (cleanText === "") targetControl.insertText("", "Replace");
-                    else targetControl.insertText(cleanText, "Replace");
+                    let lines = cleanText.split('\n');
+                    for (let line of lines) {
+                        if (line.trim() !== "") {
+                            let insertStr = isFirstInsert ? line.trim() : "\n" + line.trim();
+                            let r = targetControl.insertText(insertStr, isFirstInsert ? "Replace" : "End");
+
+                            if (headerKeys.includes(key)) {
+                                r.font.name = "宋体";
+                                r.font.size = 12;
+                                r.font.bold = false;
+                            } else if (targetKeys.includes(key)) {
+                                r.font.name = "宋体";
+                                r.font.size = 12;
+                                r.font.color = "#1C1C1E";
+                                r.font.spacing = 1;
+                                r.font.bold = isTitleLine(line);
+                            } else {
+                                r.font.spacing = 1;
+                                r.font.bold = false;
+                            }
+                            isFirstInsert = false;
+                        }
+                    }
                 }
                 writeCount++;
             }

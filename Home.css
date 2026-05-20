@@ -96,12 +96,11 @@ body {
         background: #E5E5EA;
     }
 
-/* 窄屏压缩 */
 @media (max-width: 320px) {
     .header {
         padding-top: 45px;
     }
-    /* 确保不会被按钮遮挡 */
+
     .logo-img {
         height: 60px;
     }
@@ -234,11 +233,16 @@ body {
     width: 100%;
 }
 
+/* 🌟 禁止 label 文字被选中 */
 label {
     font-size: 13px;
     font-weight: 500;
     margin-bottom: 6px;
     color: var(--text-sub);
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
 }
 
 input[type="text"], input[type="password"], textarea, select {
@@ -261,7 +265,6 @@ textarea {
     resize: vertical;
 }
 
-/* 下拉菜单 */
 .custom-select-wrapper {
     position: relative;
     width: 100%;
@@ -372,6 +375,7 @@ textarea {
         background: rgba(255,59,48,0.1);
     }
 
+/* 🌟 红框晃动动画及样式支持 */
 @keyframes shakeRed {
     0%, 100% {
         transform: translateX(0);
@@ -395,7 +399,12 @@ textarea {
     border-color: var(--error-color);
 }
 
-/* AI 面板 */
+.icon-btn.error-flash {
+    animation: shakeRed 0.4s ease-in-out;
+    border-color: var(--error-color);
+    color: var(--error-color);
+}
+
 .topic-input-wrapper {
     position: relative;
     width: 100%;
@@ -534,13 +543,22 @@ textarea {
     border-radius: 2px;
 }
 
-/* 图文长廊 */
 .section-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 4px;
 }
+
+.icon-btn.large {
+    width: 36px;
+    height: 36px;
+}
+
+    .icon-btn.large svg {
+        width: 20px;
+        height: 20px;
+    }
 
 .icon-btn.small {
     width: 26px;
@@ -624,7 +642,6 @@ textarea {
         border-color: var(--error-color);
     }
 
-/* Switch & Btn */
 .radio-group {
     display: flex;
     background-color: var(--bg-color);
@@ -786,7 +803,6 @@ input:checked + .slider {
     transition: width 0.2s ease;
 }
 
-/* 弹窗 */
 .modal-overlay {
     display: none;
     position: fixed;
@@ -851,7 +867,6 @@ input:checked + .slider {
         background: #D1D1D6;
     }
 
-/* 开发中 Toast 提示 */
 .dev-toast {
     position: fixed;
     top: 50%;
