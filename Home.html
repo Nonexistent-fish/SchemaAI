@@ -43,11 +43,7 @@
                 </div>
                 <div class="template-card" id="card-custom">
                     <div class="card-icon" style="color: var(--text-sub);">
-                        <svg viewBox="0 0 24 24">
-                            <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
-                            <polyline points="2 17 12 22 22 17"></polyline>
-                            <polyline points="2 12 12 22 22 12"></polyline>
-                        </svg>
+                        <svg viewBox="0 0 24 24"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 17 22 12"></polyline></svg>
                     </div>
                     <h3>自定义模板</h3>
                     <p>自由配置文档标记与 AI 规则。</p>
@@ -89,14 +85,14 @@
                     <div class="section-header">
                         <label style="margin: 0;">图文并茂</label>
                         <div style="display: flex; gap: 8px; align-items: center;">
-                            <button id="clipboard-img-btn" class="icon-btn large" title="从剪贴板粘贴图片" type="button">
+                            <button id="clipboard-img-btn" class="icon-btn small" title="点击抓取剪贴板图片" type="button">
                                 <svg viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
                             </button>
-                            <button id="add-img-btn" class="icon-btn large" title="导入本地图片" type="button">
+                            <button id="add-img-btn" class="icon-btn small" title="导入本地图片" type="button">
                                 <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                             </button>
                         </div>
-                        <input type="file" id="img-upload-input" accept="image/png, image/jpeg, image/jpg" style="display: none;" multiple>
+                        <input type="file" id="img-upload-input" accept="image/*" style="display: none;" multiple>
                     </div>
                     <div id="image-gallery" class="image-gallery"></div>
                 </div>
@@ -124,7 +120,13 @@
                     <textarea id="content" rows="2" placeholder="输入侧重点..." autocomplete="off" spellcheck="false"></textarea>
                 </div>
 
-                <button id="generate-btn" class="primary-btn">执行生成</button>
+                <div class="generate-action-bar">
+                    <button id="generate-btn" class="primary-btn" style="margin-top: 0;">执行生成</button>
+                    <button id="save-doc-btn" class="save-icon-btn" title="一键保存文档">
+                        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    </button>
+                </div>
+
                 <div id="progress-container" class="progress-container">
                     <div id="progress-bar" class="progress-bar"></div>
                 </div>
@@ -151,17 +153,80 @@
                 <div class="input-group"><label>模型标识Model</label><input type="text" id="setting-model" autocomplete="off" spellcheck="false"></div>
                 <div class="input-group"><label>接口地址API_url</label><input type="text" id="setting-url" autocomplete="off" spellcheck="false"></div>
                 <div class="input-group"><label>鉴权密钥API_key</label><input type="password" id="setting-key" autocomplete="new-password" spellcheck="false"></div>
-                <button class="primary-btn btn-save" id="save-settings">保存设置</button>
-                <p style="font-size: 11px; color: var(--text-sub); margin-top: 14px; line-height: 1.5; text-align: center;">
-                    * 仅支持图像处理的模型才能使用图文并茂功能，不支持图像识别的模型只能自行输入图片简述后让工具选择插入的位置。
-                </p>
+
+                <div class="input-group" style="margin-top: 8px;">
+                    <label>默认保存位置</label>
+                    <div style="display: flex; gap: 8px; width: 100%; align-items: stretch;">
+                        <input type="text" id="setting-save-path" autocomplete="off" spellcheck="false" placeholder="浏览或输入保存路径" style="flex: 1; height: 38px; margin: 0;">
+                        <button id="browse-path-btn" class="icon-btn" type="button" style="border-radius: 8px; width: 42px; height: 38px; flex-shrink: 0; margin: 0;" title="浏览文件夹">
+                            <svg viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="input-group" style="margin-top: 8px;">
+                    <label>文件默认命名方式</label>
+                    <div class="naming-container">
+
+                        <div class="naming-row">
+                            <div class="naming-combo">
+                                <input type="text" id="naming-val-0" placeholder="模块1" autocomplete="off">
+                                <div class="naming-combo-arrow"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"></polyline></svg></div>
+                                <div class="naming-combo-list">
+                                    <div class="naming-combo-item">课题</div>
+                                    <div class="naming-combo-item">授课教师</div>
+                                    <div class="naming-combo-item">日期</div>
+                                    <div class="naming-combo-item">教学目的</div>
+                                </div>
+                            </div>
+                            <div class="naming-sep" id="naming-sep-0" data-val="-">-</div>
+                            <div class="naming-combo">
+                                <input type="text" id="naming-val-1" placeholder="模块2" autocomplete="off">
+                                <div class="naming-combo-arrow"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"></polyline></svg></div>
+                                <div class="naming-combo-list">
+                                    <div class="naming-combo-item">课题</div>
+                                    <div class="naming-combo-item">授课教师</div>
+                                    <div class="naming-combo-item">日期</div>
+                                    <div class="naming-combo-item">教学目的</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="naming-row">
+                            <div class="naming-sep" id="naming-sep-1" data-val="-">-</div>
+                            <div class="naming-combo">
+                                <input type="text" id="naming-val-2" placeholder="模块3" autocomplete="off">
+                                <div class="naming-combo-arrow"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"></polyline></svg></div>
+                                <div class="naming-combo-list">
+                                    <div class="naming-combo-item">课题</div>
+                                    <div class="naming-combo-item">授课教师</div>
+                                    <div class="naming-combo-item">日期</div>
+                                    <div class="naming-combo-item">教学目的</div>
+                                </div>
+                            </div>
+                            <div class="naming-sep" id="naming-sep-2" data-val="-">-</div>
+                            <div class="naming-combo">
+                                <input type="text" id="naming-val-3" placeholder="模块4" autocomplete="off">
+                                <div class="naming-combo-arrow"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"></polyline></svg></div>
+                                <div class="naming-combo-list">
+                                    <div class="naming-combo-item">课题</div>
+                                    <div class="naming-combo-item">授课教师</div>
+                                    <div class="naming-combo-item">日期</div>
+                                    <div class="naming-combo-item">教学目的</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="primary-btn btn-save" id="save-settings" style="margin-top:16px;">保存设置</button>
             </div>
         </div>
 
         <div id="view-add-class" class="view-section">
             <div class="view-header"><button class="nav-back-btn"><svg viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>返回</button><span class="view-title">添加新班级</span></div>
             <div class="form-container">
-                <div class="input-group"><label>班级标识名称</label><input type="text" id="new-class-input" placeholder="输入班级全称" autocomplete="off" spellcheck="false"></div>
+                <div class="input-group"><label>班级名称</label><input type="text" id="new-class-input" placeholder="输入班级全称" autocomplete="off" spellcheck="false"></div>
                 <button class="primary-btn btn-save" id="save-new-class">添加至列表</button>
             </div>
         </div>

@@ -32,13 +32,17 @@ function injectCustomStyles() {
     document.head.appendChild(style);
 }
 
-let CONFIG = { teacher: "", major: "", model: "", url: "", key: "", classes: [], defaultView: "view-home" };
+let CONFIG = { teacher: "", major: "", model: "", url: "", key: "", classes: [], defaultView: "view-home", namingVals: [], namingSeps: [], savePath: "" };
 let selectedClass = "";
 let currentTopicCount = 3;
 let generatedTopics = [];
 const ITEM_HEIGHT = 43;
 let uploadedImages = [];
 let lastRootView = "view-home";
+
+
+let lastFormData = null;
+let lastAiData = null;
 
 const AVAILABLE_VIEWS = [
     { id: "view-home", name: "主页" },
@@ -63,17 +67,41 @@ function initStorage() {
         CONFIG.model = ""; CONFIG.url = ""; CONFIG.classes = []; CONFIG.defaultView = "view-home";
     }
 
-    const viewSelect = document.getElementById("setting-default-view");
-    viewSelect.innerHTML = "";
-    AVAILABLE_VIEWS.forEach(v => {
-        let opt = document.createElement("option");
-        opt.value = v.id; opt.innerText = v.name;
-        viewSelect.appendChild(opt);
-    });
+    // 初始化默认命名规则
+    if (!CONFIG.namingVals || CONFIG.namingVals.length !== 4) {
+        CONFIG.namingVals = ["课题", "", "日期", ""];
+        CONFIG.namingSeps = ["-", "-", "-"];
+    }
 
-    viewSelect.value = CONFIG.defaultView;
+    const viewSelect = document.getElementById("setting-default-view");
+    if (viewSelect) {
+        viewSelect.innerHTML = "";
+        AVAILABLE_VIEWS.forEach(v => {
+            let opt = document.createElement("option");
+            opt.value = v.id; opt.innerText = v.name;
+            viewSelect.appendChild(opt);
+        });
+        viewSelect.value = CONFIG.defaultView;
+    }
+
     if (AVAILABLE_VIEWS.find(v => v.id === CONFIG.defaultView)) switchView(CONFIG.defaultView);
     else switchView("view-home");
+
+    // 填充设置页数据
+    for (let i = 0; i < 4; i++) {
+        const input = document.getElementById(`naming-val-${i}`);
+        if (input) input.value = CONFIG.namingVals[i] || "";
+        if (i < 3) {
+            const sepBtn = document.getElementById(`naming-sep-${i}`);
+            if (sepBtn) {
+                let val = CONFIG.namingSeps[i] || "-";
+                sepBtn.dataset.val = val;
+                sepBtn.innerText = val === " " ? "空格" : val;
+            }
+        }
+    }
+    const savePathInput = document.getElementById("setting-save-path");
+    if (savePathInput) savePathInput.value = CONFIG.savePath || "";
 
     renderClassDropdown();
 }
@@ -139,13 +167,84 @@ function initUIEvents() {
         CONFIG.major = document.getElementById("setting-major").value.trim();
         saveStorage(); switchView(lastRootView);
     };
+
+
+    document.querySelectorAll('.naming-combo').forEach(combo => {
+        const input = combo.querySelector('input');
+        const arrow = combo.querySelector('.naming-combo-arrow');
+        const list = combo.querySelector('.naming-combo-list');
+
+        const toggleList = (e) => {
+            e.stopPropagation();
+            document.querySelectorAll('.naming-combo-list').forEach(l => { if (l !== list) l.classList.remove('show'); });
+            list.classList.toggle('show');
+        };
+        arrow.onclick = toggleList;
+
+        list.querySelectorAll('.naming-combo-item').forEach(item => {
+            item.onclick = () => {
+                input.value = item.innerText;
+                list.classList.remove('show');
+            };
+        });
+    });
+    document.addEventListener('click', () => {
+        document.querySelectorAll('.naming-combo-list').forEach(l => l.classList.remove('show'));
+    });
+
+
+    const sepTypes = ['-', '+', ' ', ','];
+    const sepLabels = ['-', '+', ' ', ','];
+    for (let i = 0; i < 3; i++) {
+        const sepBtn = document.getElementById(`naming-sep-${i}`);
+        if (sepBtn) {
+            sepBtn.onclick = () => {
+                let current = sepBtn.dataset.val || '-';
+                let idx = sepTypes.indexOf(current);
+                let nextIdx = (idx + 1) % sepTypes.length;
+                sepBtn.dataset.val = sepTypes[nextIdx];
+                sepBtn.innerText = sepLabels[nextIdx];
+            };
+        }
+    }
+
+    // 浏览文件夹逻辑
+    const browseBtn = document.getElementById("browse-path-btn");
+    if (browseBtn) {
+        browseBtn.onclick = async () => {
+            try {
+                if (window.showDirectoryPicker) {
+                    const dirHandle = await window.showDirectoryPicker();
+                    document.getElementById("setting-save-path").value = dirHandle.name;
+                } else {
+                    showStatus("当前环境不支持选择文件夹，请手动填入路径", "warn");
+                }
+            } catch (e) {
+                // 取消选择不报错
+            }
+        };
+    }
+
     document.getElementById("save-settings").onclick = () => {
         CONFIG.defaultView = document.getElementById("setting-default-view").value;
         CONFIG.model = document.getElementById("setting-model").value.trim();
         CONFIG.url = document.getElementById("setting-url").value.trim();
         CONFIG.key = document.getElementById("setting-key").value.trim();
+
+        // 提取命名规则
+        CONFIG.namingVals = [];
+        CONFIG.namingSeps = [];
+        for (let i = 0; i < 4; i++) {
+            CONFIG.namingVals.push(document.getElementById(`naming-val-${i}`).value);
+            if (i < 3) {
+                CONFIG.namingSeps.push(document.getElementById(`naming-sep-${i}`).dataset.val);
+            }
+        }
+        CONFIG.savePath = document.getElementById("setting-save-path").value.trim();
+
         saveStorage(); switchView(lastRootView);
     };
+
     document.getElementById("save-new-class").onclick = () => {
         const newClass = document.getElementById("new-class-input").value.trim();
         if (newClass && !CONFIG.classes.includes(newClass)) {
@@ -166,33 +265,60 @@ function initUIEvents() {
         dropdown.style.display = "none"; selectDisplay.classList.remove("active");
     });
 
-    document.getElementById("add-img-btn").onclick = () => document.getElementById("img-upload-input").click();
-    document.getElementById("clipboard-img-btn").onclick = async () => {
-        try {
-            const items = await navigator.clipboard.read();
-            let found = false;
-            for (const item of items) {
-                const types = item.types.filter(t => t.startsWith('image/'));
-                for (const type of types) {
-                    const blob = await item.getType(type);
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                        uploadedImages.push({
-                            id: "IMG_" + Math.random().toString(36).substr(2, 6),
-                            base64: e.target.result,
-                            desc: ""
-                        });
-                        renderImageGallery();
-                    };
-                    reader.readAsDataURL(blob);
-                    found = true;
+    const clipboardBtn = document.getElementById("clipboard-img-btn");
+    if (clipboardBtn) {
+        clipboardBtn.onclick = async () => {
+            try {
+                const items = await navigator.clipboard.read();
+                let found = false;
+                for (const item of items) {
+                    const imageTypes = item.types.filter(t => t.startsWith('image/'));
+                    if (imageTypes.length > 0) {
+                        const blob = await item.getType(imageTypes[0]);
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            uploadedImages.push({
+                                id: "IMG_" + Math.random().toString(36).substr(2, 6),
+                                base64: e.target.result,
+                                desc: ""
+                            });
+                            renderImageGallery();
+                        };
+                        reader.readAsDataURL(blob);
+                        found = true;
+                        break;
+                    }
                 }
+                if (!found) showStatus("受插件限制，若是webp文件，请直接按 Ctrl+V 粘贴", "warn");
+            } catch (err) {
+                showStatus("请点击页面空白处，并直接按 Ctrl+V 粘贴", "warn");
             }
-            if (!found) showStatus("剪贴板中未检测到图片", "warn");
-        } catch (err) {
-            showStatus("请授予剪贴板权限，或直接按 Ctrl+V 粘贴", "error");
+        };
+    }
+
+
+    document.addEventListener('paste', (e) => {
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+        if (!e.clipboardData) return;
+        const items = e.clipboardData.items;
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].type.indexOf('image') !== -1) {
+                e.preventDefault();
+                const blob = items[i].getAsFile();
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    uploadedImages.push({ id: "IMG_" + Math.random().toString(36).substr(2, 6), base64: event.target.result, desc: "" });
+                    renderImageGallery();
+                    showStatus("已成功捕获图片", "success");
+                };
+                reader.readAsDataURL(blob);
+                return; 
+            }
         }
-    };
+    });
+
+    document.getElementById("add-img-btn").onclick = () => document.getElementById("img-upload-input").click();
     document.getElementById("img-upload-input").onchange = (e) => {
         const files = Array.from(e.target.files);
         files.forEach(file => {
@@ -207,23 +333,6 @@ function initUIEvents() {
         e.target.value = "";
     };
 
-    document.addEventListener('paste', (e) => {
-        if (!e.clipboardData) return;
-        const items = e.clipboardData.items;
-        for (let i = 0; i < items.length; i++) {
-            if (items[i].type.indexOf('image') !== -1) {
-                const blob = items[i].getAsFile();
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                    uploadedImages.push({ id: "IMG_" + Math.random().toString(36).substr(2, 6), base64: event.target.result, desc: "" });
-                    renderImageGallery();
-                    showStatus("已成功粘贴图片", "success");
-                };
-                reader.readAsDataURL(blob);
-            }
-        }
-    });
-
     const overlay = document.getElementById("modal-overlay");
     document.querySelectorAll(".btn-cancel").forEach(btn => btn.onclick = () => overlay.classList.remove("open"));
     overlay.onclick = (e) => { if (e.target === overlay) overlay.classList.remove("open"); };
@@ -236,6 +345,9 @@ function initUIEvents() {
         overlay.classList.remove("open");
         renderImageGallery();
     };
+
+    // 绑定另存为下载按钮
+    document.getElementById("save-doc-btn").onclick = handleSaveDocument;
 }
 
 function openImageDescModal(id) {
@@ -432,40 +544,43 @@ function updateProgress(width) { document.getElementById("progress-container").s
 
 async function handleGenerate() {
     const btn = document.getElementById("generate-btn");
+    const saveBtn = document.getElementById("save-doc-btn");
     const selectedItem = document.querySelector(".topic-item.selected");
     const finalTopic = selectedItem ? selectedItem.innerText : document.getElementById("topic").value;
 
     clearStatus();
+    saveBtn.classList.remove("show");
+
     if (!document.getElementById("course").value) {
         document.getElementById("course").parentElement.classList.add("error-flash");
         setTimeout(() => document.getElementById("course").parentElement.classList.remove("error-flash"), 400);
-        showStatus("阻断：请填写【课程名称】", "error");
+        showStatus("请填写【课程名称】", "error");
         return;
     }
     if (!finalTopic) {
         document.getElementById("topic-wrapper").classList.add("error-flash");
         setTimeout(() => document.getElementById("topic-wrapper").classList.remove("error-flash"), 400);
-        showStatus("阻断：请填写或生成【章节课题】", "error");
+        showStatus("请填写或生成【章节课题】", "error");
         return;
     }
     if (!selectedClass) {
         document.getElementById("class-select-wrapper").classList.add("error-flash");
         setTimeout(() => document.getElementById("class-select-wrapper").classList.remove("error-flash"), 400);
-        showStatus("阻断：请选择或新建【授课班级】", "error");
+        showStatus("请选择或新建【授课班级】", "error");
         return;
     }
     if (!CONFIG.teacher || !CONFIG.major) {
         const userBtn = document.getElementById("nav-user");
         userBtn.classList.add("error-flash");
         setTimeout(() => userBtn.classList.remove("error-flash"), 400);
-        showStatus("阻断：请点击头像设置【教师与专业】", "error");
+        showStatus("请点击头像设置【教师与专业】", "error");
         return;
     }
     if (!CONFIG.url) {
         const setBtn = document.getElementById("nav-settings");
         setBtn.classList.add("error-flash");
         setTimeout(() => setBtn.classList.remove("error-flash"), 400);
-        showStatus("阻断：请点击齿轮配置【API接口】", "error");
+        showStatus("请点击齿轮配置【API接口】", "error");
         return;
     }
 
@@ -473,26 +588,110 @@ async function handleGenerate() {
         teacher: CONFIG.teacher, major: CONFIG.major, classStr: selectedClass,
         course: document.getElementById("course").value, topic: finalTopic,
         courseType: document.querySelector('input[name="courseType"]:checked').value,
-        contentInfo: document.getElementById("content").value || "无"
+        contentInfo: document.getElementById("content").value || "无",
+        date: `${new Date().getFullYear()}年${String(new Date().getMonth() + 1).padStart(2, '0')}月${String(new Date().getDate()).padStart(2, '0')}日`
     };
+    lastFormData = formData;
 
     try {
         btn.disabled = true; btn.innerText = "生成中..."; updateProgress(10);
         const modelNameDisplay = CONFIG.model || "本地大模型"; showStatus(`正在请求 ${modelNameDisplay}...`, "info");
 
         let aiResponseJSON = await fetchLessonPlanFromAI(formData);
-        if (formData.courseType === "理论课") { aiResponseJSON.practical_content = ""; aiResponseJSON.practical_equipment = ""; }
+
+        if (formData.courseType === "理论课") {
+            aiResponseJSON.practical_content = "";
+            aiResponseJSON.practical_equipment = "";
+        }
+        lastAiData = aiResponseJSON;
 
         updateProgress(70); showStatus(`等待 ${modelNameDisplay} 响应...`, "info");
         await writeToWord(formData, aiResponseJSON);
 
-        updateProgress(100); showStatus("教案排版写入成功", "success");
-        setTimeout(() => { document.getElementById("progress-container").style.display = "none"; }, 1000);
+        updateProgress(100); showStatus("排版写入成功", "success");
+        setTimeout(() => {
+            document.getElementById("progress-container").style.display = "none";
+            saveBtn.classList.add("show"); // 动画挤出保存按钮
+        }, 1000);
     } catch (error) {
         document.getElementById("progress-bar").style.background = "var(--error-color)"; showStatus(`错误：${error.message}`, "error");
     } finally {
         btn.disabled = false; setTimeout(() => { btn.innerText = "执行生成"; document.getElementById("progress-bar").style.background = ""; }, 2500);
     }
+}
+
+function handleSaveDocument() {
+    if (!lastFormData) return;
+
+    // 灵活拼装文件名
+    let validParts = [];
+    for (let i = 0; i < 4; i++) {
+        let val = CONFIG.namingVals[i];
+        let sep = i < 3 ? CONFIG.namingSeps[i] : ""; // 读取的是底层储存的 '-' 或 ' '
+
+        let actualStr = "";
+        if (val === '课题') actualStr = lastFormData.topic || "";
+        else if (val === '授课教师') actualStr = lastFormData.teacher || "";
+        else if (val === '日期') actualStr = lastFormData.date || "";
+        else if (val === '教学目的') actualStr = (lastAiData && lastAiData.objectives) ? lastAiData.objectives : "";
+        else actualStr = val;
+
+        if (actualStr && actualStr.trim() !== "") {
+            validParts.push({ str: actualStr.trim(), originalIndex: i });
+        }
+    }
+
+    let fileName = "";
+    for (let j = 0; j < validParts.length; j++) {
+        fileName += validParts[j].str;
+        if (j < validParts.length - 1) {
+            fileName += CONFIG.namingSeps[validParts[j].originalIndex]; // 直接拼接，它自身就是真实字符
+        }
+    }
+
+    if (!fileName) fileName = "智能教案";
+    if (lastFormData.courseType === "实训课") fileName = "实训-" + fileName;
+    fileName += ".docx";
+
+    showStatus("正在准备文件...", "info");
+    Office.context.document.getFileAsync(Office.FileType.Compressed, { sliceSize: 65536 }, function (result) {
+        if (result.status === Office.AsyncResultStatus.Succeeded) {
+            var file = result.value;
+            var slicesReceived = 0, sliceCount = file.sliceCount;
+            var docData = [];
+            getSlice(file, 0);
+
+            function getSlice(file, nextSlice) {
+                file.getSliceAsync(nextSlice, function (sliceResult) {
+                    if (sliceResult.status === Office.AsyncResultStatus.Succeeded) {
+                        docData = docData.concat(sliceResult.value.data);
+                        slicesReceived++;
+                        if (slicesReceived === sliceCount) {
+                            file.closeAsync();
+                            var u8Array = new Uint8Array(docData);
+                            var blob = new Blob([u8Array], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
+                            var url = window.URL.createObjectURL(blob);
+                            var a = document.createElement("a");
+                            a.href = url;
+                            a.download = fileName;
+                            document.body.appendChild(a);
+                            a.click();
+                            window.URL.revokeObjectURL(url);
+                            document.body.removeChild(a);
+                            showStatus(`文档下载完成`, "success");
+                        } else {
+                            getSlice(file, ++nextSlice);
+                        }
+                    } else {
+                        file.closeAsync();
+                        showStatus("获取文档切片失败", "error");
+                    }
+                });
+            }
+        } else {
+            showStatus("获取文档失败", "error");
+        }
+    });
 }
 
 async function fetchLessonPlanFromAI(data) {
@@ -511,7 +710,7 @@ async function fetchLessonPlanFromAI(data) {
 4. 讲授新课：300-450字。必须从“1. 小标题名称”开始，包含2-5小标题，包含生活化比喻。禁止生成总标题和结尾字数统计！
 5. 教学后记：不超过50字的反思，禁止建议字眼。
 6. 换行规则：需要换行处输出明文 \\n，绝对禁止物理回车。
-7.  教学重点与难点要有1，2，3序号排序，每个序号独占一行，禁止用逗号分隔，每项不超过15字。重点至少3个，难点至少1个。
+7.  教学重点与难点要有1，2，3序号排序，每个序号独占一行，禁止用逗号分隔，每项7-15字。重点至少3个，难点至少1个。
 8.  归纳小结是对内容的重点总结，不超过50字。
 9.  教学辅助手段逗号分割。
 10. 布置简单相关作业,不要生成序号`;
@@ -519,7 +718,9 @@ async function fetchLessonPlanFromAI(data) {
     if (data.courseType === "实训课") {
         systemPrompt += `\n11. 实训指令：讲授新课和组织教学必须围绕“实物拆装、设备操作”展开。绝对禁止纯理论！必须设计学生分组实操环节！`;
     }
-
+    if (data.contentInfo && data.contentInfo.trim() !== '无' && data.contentInfo.trim() !== '') {
+        systemPrompt += `\n核心教学内容补充：${data.contentInfo}`;
+    }
     systemPrompt += `\n返回结构：${jsonFormatStr}`;
 
     const headers = { "Content-Type": "application/json" };
@@ -529,7 +730,6 @@ async function fetchLessonPlanFromAI(data) {
 
     let messagesPayload = [];
     if (uploadedImages.length > 0) {
-        // 包含图片base64 + 让模型自行描述图片
         let imgInstructions = `\n\n排版配图指令：\n前端已上传 ${uploadedImages.length} 张图片。请仔细观察每张图片，并为需要配图的讲授新课内容，在合适位置独占一行输出对应的占位符代码：\n`;
         uploadedImages.forEach((img, i) => {
             imgInstructions += `${i + 1}. 第${i + 1}张图片 (占位符：{{${img.id}}})\n`;
@@ -546,6 +746,7 @@ async function fetchLessonPlanFromAI(data) {
     } else {
         messagesPayload = [{ role: "user", content: systemPrompt }];
     }
+
     async function makeRequest(payload, description = "") {
         const requestBody = {
             model: CONFIG.model,
@@ -608,13 +809,11 @@ async function fetchLessonPlanFromAI(data) {
     }
 
     try {
-
         const rawText = await makeRequest(messagesPayload);
         return parseResponse(rawText);
     } catch (error) {
-
         if (uploadedImages.length === 0) {
-            throw error; 
+            throw error;
         }
 
         const missingDescs = uploadedImages.some(img => !img.desc || img.desc.trim() === '');
@@ -622,13 +821,18 @@ async function fetchLessonPlanFromAI(data) {
             throw new Error("当前模型可能不支持多模态识别，请点击图片填写“图片简述”，填写后工具将自动在文本中插入图片。");
         }
 
-        let fallbackPrompt = systemPrompt; 
+        let fallbackPrompt = systemPrompt;
         let imgInstructions = `\n\n排版配图指令（无法看到图片，根据描述决策）：\n前端已上传 ${uploadedImages.length} 张图片，它们的描述如下，请根据描述在讲授新课中合适的位置独占一行插入对应的占位符代码。\n`;
         uploadedImages.forEach((img, i) => {
             imgInstructions += `${i + 1}. 描述："${img.desc || '未命名配图'}" (占位符：{{${img.id}}})\n`;
         });
         imgInstructions += `请在讲授新课需要配图处，独占一行输出对应的占位符代码！`;
         fallbackPrompt += imgInstructions;
+
+        if (data.contentInfo && data.contentInfo.trim() !== '无' && data.contentInfo.trim() !== '') {
+            fallbackPrompt += `\n核心教学内容补充：${data.contentInfo}`;
+        }
+
         fallbackPrompt += `\n返回结构：${jsonFormatStr}`;
 
         const fallbackPayload = [{ role: "user", content: fallbackPrompt }];
@@ -660,7 +864,6 @@ async function writeToWord(formData, aiData) {
 
         function isTitleLine(line) {
             const trimmed = line.trim();
-            // 匹配：数字开头 + 可选空格 + 标题符号（点、顿号、括号等）
             return /^\d+\s*[\.．、)）]/.test(trimmed);
         }
 
@@ -674,16 +877,17 @@ async function writeToWord(formData, aiData) {
         const headerKeys = ["cc_teacher", "cc_date", "cc_major", "cc_class", "cc_course", "cc_topic"];
 
         for (const [key, rawText] of Object.entries(contentMapping)) {
-            if (!rawText || rawText.trim() === "") continue;
+            let finalRawText = rawText || " ";
 
             const targetControls = allControls.items.filter(c => c.tag === key || c.title === key);
-            let cleanText = rawText.replace(/\*\*/g, "").replace(/\*/g, "").replace(/#/g, "").replace(/（字数：.*?）/g, "").replace(/\(字数[：:].*?\)/g, "");
+            let cleanText = finalRawText.replace(/\*\*/g, "").replace(/\*/g, "").replace(/#/g, "").replace(/（字数：.*?）/g, "").replace(/\(字数[：:].*?\)/g, "");
             cleanText = cleanText.replace(/\n\s*\n+/g, "\n").trim();
+            cleanText = cleanText.replace(/\\n/g, "\n");
+            cleanText = cleanText.replace(/([^\n])(\d+[.．、)）]\s*)/g, "$1\n$2");
 
             for (const targetControl of targetControls) {
                 let isFirstInsert = true;
 
-                // 图文混排（图片占位符处理）
                 if (key === "cc_process_new" && uploadedImages.length > 0) {
                     let parts = cleanText.split(/({{IMG_[a-zA-Z0-9]+}})/).filter(p => p !== "");
 
@@ -698,14 +902,15 @@ async function writeToWord(formData, aiData) {
                             let imgObj = uploadedImages.find(i => i.id === match[1]);
                             if (imgObj) {
                                 let pureBase64 = imgObj.base64.split(',')[1];
-                                targetControl.insertText("\n　　　　　　", "End");
+
+                                targetControl.insertText("\n", "End");
 
                                 let pic = targetControl.insertInlinePictureFromBase64(pureBase64, "End");
                                 pic.lockAspectRatio = true;
                                 pic.width = 220;
 
                                 let descriptionStr = imgObj.desc || "自动变速箱配件";
-                                let captionText = `\n　　　　　　图${imgCounter}  ${descriptionStr}\n`;
+                                let captionText = `\n图${imgCounter}  ${descriptionStr}`;
                                 let captionRange = targetControl.insertText(captionText, "End");
 
                                 captionRange.font.name = "宋体";
@@ -737,8 +942,9 @@ async function writeToWord(formData, aiData) {
                 } else {
                     let lines = cleanText.split('\n');
                     for (let line of lines) {
-                        if (line.trim() !== "") {
-                            let insertStr = isFirstInsert ? line.trim() : "\n" + line.trim();
+                        let trimmedLine = line.trim();
+                        if (trimmedLine !== "" || isFirstInsert) {
+                            let insertStr = isFirstInsert ? (trimmedLine || " ") : "\n" + trimmedLine;
                             let r = targetControl.insertText(insertStr, isFirstInsert ? "Replace" : "End");
 
                             if (headerKeys.includes(key)) {

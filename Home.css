@@ -14,18 +14,25 @@
     --warn-color: #FF9500;
 }
 
-body {
+html, body {
+    height: 100%;
     margin: 0;
-    padding: 0;
+    overflow: hidden; /* 彻底禁止 body 出现滚动条 */
+}
+
+body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     background-color: var(--bg-color);
     color: var(--text-main);
 }
 
 .app-container {
+    height: 100%; /* 占满窗格高度 */
+    overflow-y: auto; /* 内容超出时内部滚动 */
+    overflow-x: hidden;
     padding: 16px;
     width: 100%;
-    overflow-x: hidden;
+    box-sizing: border-box;
 }
 
 .header {
@@ -233,7 +240,6 @@ body {
     width: 100%;
 }
 
-/* 🌟 禁止 label 文字被选中 */
 label {
     font-size: 13px;
     font-weight: 500;
@@ -375,7 +381,6 @@ textarea {
         background: rgba(255,59,48,0.1);
     }
 
-/* 🌟 红框晃动动画及样式支持 */
 @keyframes shakeRed {
     0%, 100% {
         transform: translateX(0);
@@ -758,6 +763,52 @@ input:checked + .slider {
         background-color: #005BB5;
     }
 
+.generate-action-bar {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    transition: all 0.3s ease;
+    margin-top: 10px;
+}
+
+    .generate-action-bar .primary-btn {
+        flex: 1;
+        margin-top: 0;
+        transition: all 0.3s ease;
+    }
+
+.save-icon-btn {
+    width: 0;
+    height: 42px;
+    opacity: 0;
+    padding: 0;
+    border: 1.5px solid #1C1C1E;
+    background: #FFFFFF;
+    color: #1C1C1E;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+    .save-icon-btn.show {
+        width: 48px;
+        opacity: 1;
+    }
+
+    .save-icon-btn:hover {
+        background: #F2F2F7;
+        transform: translateY(-2px);
+    }
+
+    .save-icon-btn:active {
+        transform: translateY(0);
+    }
+
 .status-msg {
     margin-top: 12px;
     font-size: 13px;
@@ -890,3 +941,137 @@ input:checked + .slider {
         display: block;
         opacity: 1;
     }
+
+/* 外层容器：允许换行，gap控制行间距 */
+.naming-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 0; /* 行间距 */
+    width: 100%;
+}
+
+/* 每一行：内部弹性布局，最小宽度保证一行至少容纳两个输入框 */
+.naming-row {
+    display: flex;
+    align-items: center;
+    flex: 1 1 100%; /* 默认占满一行 */
+    min-width: 280px; /* 低于此宽度自动换行 */
+    gap: 6px;
+}
+
+/* 当外层空间充裕时，两行并排（每行占一半） */
+@media (min-width: 600px) { /* 可根据实际调整 */
+    .naming-row {
+        flex: 1 1 50%;
+    }
+}
+
+/* 输入框容器：等分剩余空间，并提升自身层级 */
+.naming-combo {
+    position: relative; /* 为下拉菜单提供定位基准 */
+    flex: 1 1 0;
+    min-width: 80px;
+    display: flex;
+}
+
+    .naming-combo input {
+        width: 100%;
+        padding: 8px 24px 8px 8px;
+        height: 36px;
+        font-size: 13px;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        background: var(--card-bg);
+    }
+
+.naming-combo-arrow {
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 14px;
+    height: 14px;
+    cursor: pointer;
+    color: var(--text-sub);
+}
+
+    .naming-combo-arrow svg {
+        width: 100%;
+        height: 100%;
+        stroke: currentColor;
+        fill: none;
+        stroke-width: 2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+    }
+
+
+.naming-combo-list {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    margin-top: 4px;
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    z-index: 10000; 
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-8px);
+    transition: opacity 0.2s ease, transform 0.2s cubic-bezier(0.18, 0.89, 0.32, 1.28), visibility 0.2s;
+    pointer-events: none;
+}
+
+    .naming-combo-list.show {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0);
+        pointer-events: auto;
+    }
+
+.naming-combo-item {
+    padding: 8px 10px;
+    font-size: 13px;
+    cursor: pointer;
+    border-bottom: 1px solid #F2F2F7;
+}
+
+    .naming-combo-item:last-child {
+        border-bottom: none;
+    }
+
+    .naming-combo-item:hover {
+        background: #F9F9F9;
+        color: var(--accent-color);
+    }
+
+.naming-sep {
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #E5E5EA;
+    border-radius: 4px;
+    font-weight: bold;
+    font-size: 14px;
+    cursor: pointer;
+    user-select: none;
+    transition: 0.2s;
+    color: var(--text-main);
+    flex-shrink: 0;
+}
+
+    .naming-sep:hover {
+        background: #D1D1D6;
+    }
+
+.naming-container,
+.naming-row,
+.naming-combo,
+.input-group,
+.form-container {
+    overflow: visible !important;
+}
