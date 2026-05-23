@@ -32,7 +32,7 @@ function injectCustomStyles() {
     document.head.appendChild(style);
 }
 
-let CONFIG = { teacher: "", major: "", model: "", url: "", key: "", classes: [], defaultView: "view-home", namingVals: [], namingSeps: [], savePath: "" };
+let CONFIG = { teacher: "", major: "", model: "", url: "", key: "", classes: [], defaultView: "view-home", namingVals: [], namingSeps: [], savePath: "", searchEngine: "baidu" };
 let selectedClass = "";
 let currentTopicCount = 3;
 let generatedTopics = [];
@@ -59,35 +59,44 @@ function switchView(viewId) {
 }
 
 function initStorage() {
-    const stored = localStorage.getItem("schema_config");
-    if (stored) {
-        CONFIG = { ...CONFIG, ...JSON.parse(stored) };
-        if (CONFIG.classes) CONFIG.classes = CONFIG.classes.filter(c => c && c.trim() !== "");
-    } else {
+    try {
+        const stored = localStorage.getItem("schema_config");
+        if (stored) {
+            CONFIG = { ...CONFIG, ...JSON.parse(stored) };
+            if (CONFIG.classes) CONFIG.classes = CONFIG.classes.filter(c => c && c.trim() !== "");
+        } else {
+            CONFIG.model = ""; CONFIG.url = ""; CONFIG.classes = []; CONFIG.defaultView = "view-home";
+        }
+    } catch (e) {
         CONFIG.model = ""; CONFIG.url = ""; CONFIG.classes = []; CONFIG.defaultView = "view-home";
     }
 
-    // 初始化默认命名规则
     if (!CONFIG.namingVals || CONFIG.namingVals.length !== 4) {
         CONFIG.namingVals = ["课题", "", "日期", ""];
         CONFIG.namingSeps = ["-", "-", "-"];
     }
-
-    const viewSelect = document.getElementById("setting-default-view");
-    if (viewSelect) {
-        viewSelect.innerHTML = "";
-        AVAILABLE_VIEWS.forEach(v => {
-            let opt = document.createElement("option");
-            opt.value = v.id; opt.innerText = v.name;
-            viewSelect.appendChild(opt);
-        });
-        viewSelect.value = CONFIG.defaultView;
+    if (!CONFIG.searchEngine) {
+        CONFIG.searchEngine = "baidu";
+    }
+    const viewDropdown = document.getElementById("setting-default-view-dropdown");
+    if (viewDropdown) {
+        const viewText = viewDropdown.querySelector("#setting-default-view-text");
+        if (viewText) {
+            const selectedItem = viewDropdown.querySelector(`.custom-dropdown-item[data-value="${CONFIG.defaultView}"]`);
+            viewText.textContent = selectedItem ? selectedItem.textContent : "主页";
+        }
     }
 
-    if (AVAILABLE_VIEWS.find(v => v.id === CONFIG.defaultView)) switchView(CONFIG.defaultView);
-    else switchView("view-home");
+    const searchDropdown = document.getElementById("setting-search-engine-dropdown");
+    if (searchDropdown) {
+        const searchText = searchDropdown.querySelector("#setting-search-engine-text");
+        if (searchText) {
+            const engine = CONFIG.searchEngine || "baidu";
+            const engineItem = searchDropdown.querySelector(`.custom-dropdown-item[data-value="${engine}"]`);
+            searchText.textContent = engineItem ? engineItem.textContent : "百度";
+        }
+    }
 
-    // 填充设置页数据
     for (let i = 0; i < 4; i++) {
         const input = document.getElementById(`naming-val-${i}`);
         if (input) input.value = CONFIG.namingVals[i] || "";
@@ -100,8 +109,11 @@ function initStorage() {
             }
         }
     }
-    const savePathInput = document.getElementById("setting-save-path");
-    if (savePathInput) savePathInput.value = CONFIG.savePath || "";
+    if (AVAILABLE_VIEWS.find(v => v.id === CONFIG.defaultView)) {
+        switchView(CONFIG.defaultView);
+    } else {
+        switchView("view-home");
+    }
 
     renderClassDropdown();
 }
@@ -148,10 +160,29 @@ function initUIEvents() {
         switchView("view-user");
     };
     document.getElementById("nav-settings").onclick = () => {
-        document.getElementById("setting-default-view").value = CONFIG.defaultView;
+        const viewDropdown = document.getElementById("setting-default-view-dropdown");
+        if (viewDropdown) {
+            const viewText = viewDropdown.querySelector("#setting-default-view-text");
+            const selectedItem = viewDropdown.querySelector(`.custom-dropdown-item[data-value="${CONFIG.defaultView}"]`);
+            if (viewText && selectedItem) {
+                viewText.textContent = selectedItem.textContent;
+            }
+        }
+
+        const searchDropdown = document.getElementById("setting-search-engine-dropdown");
+        if (searchDropdown) {
+            const searchText = searchDropdown.querySelector("#setting-search-engine-text");
+            const engine = CONFIG.searchEngine || "baidu";
+            const engineItem = searchDropdown.querySelector(`.custom-dropdown-item[data-value="${engine}"]`);
+            if (searchText && engineItem) {
+                searchText.textContent = engineItem.textContent;
+            }
+        }
+
         document.getElementById("setting-model").value = CONFIG.model;
         document.getElementById("setting-url").value = CONFIG.url;
         document.getElementById("setting-key").value = CONFIG.key;
+
         switchView("view-settings");
     };
 
@@ -177,6 +208,7 @@ function initUIEvents() {
         const toggleList = (e) => {
             e.stopPropagation();
             document.querySelectorAll('.naming-combo-list').forEach(l => { if (l !== list) l.classList.remove('show'); });
+            combo.classList.toggle('list-open');
             list.classList.toggle('show');
         };
         arrow.onclick = toggleList;
@@ -185,11 +217,13 @@ function initUIEvents() {
             item.onclick = () => {
                 input.value = item.innerText;
                 list.classList.remove('show');
+                combo.classList.remove('list-open');
             };
         });
     });
     document.addEventListener('click', () => {
         document.querySelectorAll('.naming-combo-list').forEach(l => l.classList.remove('show'));
+        document.querySelectorAll('.naming-combo').forEach(c => c.classList.remove('list-open'));
     });
 
 
@@ -208,30 +242,33 @@ function initUIEvents() {
         }
     }
 
-    // 浏览文件夹逻辑
-    const browseBtn = document.getElementById("browse-path-btn");
-    if (browseBtn) {
-        browseBtn.onclick = async () => {
-            try {
-                if (window.showDirectoryPicker) {
-                    const dirHandle = await window.showDirectoryPicker();
-                    document.getElementById("setting-save-path").value = dirHandle.name;
-                } else {
-                    showStatus("当前环境不支持选择文件夹，请手动填入路径", "warn");
-                }
-            } catch (e) {
-                // 取消选择不报错
-            }
-        };
-    }
 
     document.getElementById("save-settings").onclick = () => {
-        CONFIG.defaultView = document.getElementById("setting-default-view").value;
+        const viewText = document.getElementById("setting-default-view-text");
+        if (viewText) {
+            const selected = viewText.textContent.trim();
+            if (selected === "主页") CONFIG.defaultView = "view-home";
+            else if (selected === "教案生成页面") CONFIG.defaultView = "view-main";
+            else CONFIG.defaultView = "view-home";
+        } else {
+            CONFIG.defaultView = "view-home";
+        }
+
+        const searchText = document.getElementById("setting-search-engine-text");
+        if (searchText) {
+            const selected = searchText.textContent.trim();
+            if (selected === "百度") CONFIG.searchEngine = "baidu";
+            else if (selected === "必应") CONFIG.searchEngine = "bing";
+            else if (selected === "Google") CONFIG.searchEngine = "google";
+            else CONFIG.searchEngine = "baidu";
+        } else {
+            CONFIG.searchEngine = "baidu";
+        }
+
         CONFIG.model = document.getElementById("setting-model").value.trim();
         CONFIG.url = document.getElementById("setting-url").value.trim();
         CONFIG.key = document.getElementById("setting-key").value.trim();
 
-        // 提取命名规则
         CONFIG.namingVals = [];
         CONFIG.namingSeps = [];
         for (let i = 0; i < 4; i++) {
@@ -240,9 +277,9 @@ function initUIEvents() {
                 CONFIG.namingSeps.push(document.getElementById(`naming-sep-${i}`).dataset.val);
             }
         }
-        CONFIG.savePath = document.getElementById("setting-save-path").value.trim();
 
-        saveStorage(); switchView(lastRootView);
+        saveStorage();
+        switchView(lastRootView);
     };
 
     document.getElementById("save-new-class").onclick = () => {
@@ -346,8 +383,35 @@ function initUIEvents() {
         renderImageGallery();
     };
 
-    // 绑定另存为下载按钮
+
     document.getElementById("save-doc-btn").onclick = handleSaveDocument;
+
+    document.querySelectorAll('.custom-dropdown').forEach(dropdown => {
+        const display = dropdown.querySelector('.custom-dropdown-display');
+        const list = dropdown.querySelector('.custom-dropdown-list');
+        const items = dropdown.querySelectorAll('.custom-dropdown-item');
+        const textSpan = display.querySelector('span[id$="-text"]');
+
+        display.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const wasActive = dropdown.classList.contains('active');  
+            document.querySelectorAll('.custom-dropdown').forEach(d => d.classList.remove('active'));
+            if (!wasActive) {
+                dropdown.classList.add('active');
+            }
+        });
+
+        items.forEach(item => {
+            item.addEventListener('click', () => {
+                if (textSpan) textSpan.textContent = item.textContent;
+                dropdown.classList.remove('active');
+            });
+        });
+    });
+
+    document.addEventListener('click', () => {
+        document.querySelectorAll('.custom-dropdown').forEach(d => d.classList.remove('active'));
+    });
 }
 
 function openImageDescModal(id) {
@@ -482,12 +546,44 @@ async function fetchAndRenderTopics(targetCount, isDragging) {
         generatedTopics.forEach((text, index) => {
             const item = document.createElement("div");
             item.className = "topic-item placeholder";
+            const textSpan = document.createElement("span");
+            textSpan.className = "topic-text";
+            item.appendChild(textSpan);
+
+            const actionSpan = document.createElement("span");
+            actionSpan.className = "topic-action";
+            actionSpan.innerHTML = `<svg viewBox="0 0 24 24" style="stroke:#1B7A3D;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>`;
+            actionSpan.title = '搜索图片或复制课题';
+            item.appendChild(actionSpan);
+            const originalSvg = actionSpan.innerHTML; 
+            actionSpan.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const topic = textSpan.innerText;
+                actionSpan.innerHTML = `<svg viewBox="0 0 24 24" style="stroke:#1B7A3D;"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+                setTimeout(() => {
+                    actionSpan.innerHTML = originalSvg; 
+                }, 1000);
+                const engine = CONFIG.searchEngine || 'baidu';
+                let url = '';
+                if (engine === 'baidu') {
+                    url = `https://image.baidu.com/search/index?tn=baiduimage&word=${encodeURIComponent(topic)}`;
+                } else if (engine === 'bing') {
+                    url = `https://www.bing.com/images/search?q=${encodeURIComponent(topic)}`;
+                } else {
+                    url = `https://www.google.com/search?tbm=isch&q=${encodeURIComponent(topic)}`;
+                }
+
+                const newWin = window.open(url, '_blank');
+              
+            });
+
             setTimeout(() => {
+                textSpan.innerText = text.replace(/\*\*/g, "").replace(/\*/g, "");
                 item.className = "topic-item slide-in selected";
                 if (index > 0) item.classList.remove("selected");
                 item.style.animationDelay = `${index * 0.05}s`;
-                item.innerText = text.replace(/\*\*/g, "").replace(/\*/g, "");
             }, 50);
+
             item.onclick = () => {
                 document.querySelectorAll(".topic-item").forEach(el => el.classList.remove("selected"));
                 item.classList.add("selected");
@@ -611,7 +707,7 @@ async function handleGenerate() {
         updateProgress(100); showStatus("排版写入成功", "success");
         setTimeout(() => {
             document.getElementById("progress-container").style.display = "none";
-            saveBtn.classList.add("show"); // 动画挤出保存按钮
+            saveBtn.classList.add("show");
         }, 1000);
     } catch (error) {
         document.getElementById("progress-bar").style.background = "var(--error-color)"; showStatus(`错误：${error.message}`, "error");
@@ -620,15 +716,12 @@ async function handleGenerate() {
     }
 }
 
-function handleSaveDocument() {
+async function handleSaveDocument() {
     if (!lastFormData) return;
 
-    // 灵活拼装文件名
     let validParts = [];
     for (let i = 0; i < 4; i++) {
         let val = CONFIG.namingVals[i];
-        let sep = i < 3 ? CONFIG.namingSeps[i] : ""; // 读取的是底层储存的 '-' 或 ' '
-
         let actualStr = "";
         if (val === '课题') actualStr = lastFormData.topic || "";
         else if (val === '授课教师') actualStr = lastFormData.teacher || "";
@@ -645,7 +738,7 @@ function handleSaveDocument() {
     for (let j = 0; j < validParts.length; j++) {
         fileName += validParts[j].str;
         if (j < validParts.length - 1) {
-            fileName += CONFIG.namingSeps[validParts[j].originalIndex]; // 直接拼接，它自身就是真实字符
+            fileName += CONFIG.namingSeps[validParts[j].originalIndex];
         }
     }
 
@@ -653,40 +746,60 @@ function handleSaveDocument() {
     if (lastFormData.courseType === "实训课") fileName = "实训-" + fileName;
     fileName += ".docx";
 
-    showStatus("正在准备文件...", "info");
-    Office.context.document.getFileAsync(Office.FileType.Compressed, { sliceSize: 65536 }, function (result) {
+    Office.context.document.getFileAsync(Office.FileType.Compressed, { sliceSize: 65536 }, async function (result) {
         if (result.status === Office.AsyncResultStatus.Succeeded) {
             var file = result.value;
             var slicesReceived = 0, sliceCount = file.sliceCount;
             var docData = [];
-            getSlice(file, 0);
 
-            function getSlice(file, nextSlice) {
-                file.getSliceAsync(nextSlice, function (sliceResult) {
-                    if (sliceResult.status === Office.AsyncResultStatus.Succeeded) {
-                        docData = docData.concat(sliceResult.value.data);
-                        slicesReceived++;
-                        if (slicesReceived === sliceCount) {
-                            file.closeAsync();
-                            var u8Array = new Uint8Array(docData);
-                            var blob = new Blob([u8Array], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
-                            var url = window.URL.createObjectURL(blob);
-                            var a = document.createElement("a");
-                            a.href = url;
-                            a.download = fileName;
-                            document.body.appendChild(a);
-                            a.click();
-                            window.URL.revokeObjectURL(url);
-                            document.body.removeChild(a);
-                            showStatus(`文档下载完成`, "success");
+            await new Promise((resolve, reject) => {
+                function getSlice(file, nextSlice) {
+                    file.getSliceAsync(nextSlice, function (sliceResult) {
+                        if (sliceResult.status === Office.AsyncResultStatus.Succeeded) {
+                            docData = docData.concat(sliceResult.value.data);
+                            slicesReceived++;
+                            if (slicesReceived === sliceCount) {
+                                file.closeAsync();
+                                resolve();
+                            } else {
+                                getSlice(file, ++nextSlice);
+                            }
                         } else {
-                            getSlice(file, ++nextSlice);
+                            file.closeAsync();
+                            reject("获取文档切片失败");
                         }
-                    } else {
-                        file.closeAsync();
-                        showStatus("获取文档切片失败", "error");
-                    }
-                });
+                    });
+                }
+                getSlice(file, 0);
+            });
+
+            var blob = new Blob([new Uint8Array(docData)], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
+
+            if (window.showSaveFilePicker) {
+                try {
+                    const handle = await window.showSaveFilePicker({
+                        suggestedName: fileName,
+                        types: [{
+                            description: 'Word 文档',
+                            accept: { 'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'] }
+                        }]
+                    });
+                    const writable = await handle.createWritable();
+                    await writable.write(blob);
+                    await writable.close();
+                    showStatus("文档已保存到指定位置", "success");
+                } catch (e) {
+                }
+            } else {
+                var url = window.URL.createObjectURL(blob);
+                var a = document.createElement("a");
+                a.href = url;
+                a.download = fileName;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                showStatus("文档下载完成", "success");
             }
         } else {
             showStatus("获取文档失败", "error");
@@ -707,7 +820,7 @@ async function fetchLessonPlanFromAI(data) {
 1. 仅输出单一纯JSON对象。所有的值必须是纯文本。绝对禁止包含 Markdown，不允许输出除JSON对象外其他多余语句。
 2. 教学目的：不能超过 25 字。
 3. 组织教学：写授课方式，如小游戏，举例子。
-4. 讲授新课：300-450字。必须从“1. 小标题名称”开始，包含2-5小标题，包含生活化比喻。禁止生成总标题和结尾字数统计！
+4. 讲授新课：300-450字。每个小标题必须独占一行，以“数字. 标题内容”格式书写（如“1. 行星齿轮”），小标题后直接跟正文。禁止生成总标题和结尾字数统计！
 5. 教学后记：不超过50字的反思，禁止建议字眼。
 6. 换行规则：需要换行处输出明文 \\n，绝对禁止物理回车。
 7.  教学重点与难点要有1，2，3序号排序，每个序号独占一行，禁止用逗号分隔，每项7-15字。重点至少3个，难点至少1个。
@@ -716,7 +829,7 @@ async function fetchLessonPlanFromAI(data) {
 10. 布置简单相关作业,不要生成序号`;
 
     if (data.courseType === "实训课") {
-        systemPrompt += `\n11. 实训指令：讲授新课和组织教学必须围绕“实物拆装、设备操作”展开。绝对禁止纯理论！必须设计学生分组实操环节！`;
+        systemPrompt += `\n11. 实训指令：讲授新课和组织教学必须围绕“实物拆装、设备操作”展开。不要使用太多比喻修辞，注重操作细节。绝对禁止纯理论！必须设计学生分组实操环节！`;
     }
     if (data.contentInfo && data.contentInfo.trim() !== '无' && data.contentInfo.trim() !== '') {
         systemPrompt += `\n核心教学内容补充：${data.contentInfo}`;
@@ -803,7 +916,7 @@ async function fetchLessonPlanFromAI(data) {
             try {
                 return JSON.parse(safeText);
             } catch (e2) {
-                throw new Error("模型输出了严重损坏的数据，请更换模型重试");
+                throw new Error("模型输出了严重损坏的数据，请重试");
             }
         }
     }
@@ -883,7 +996,6 @@ async function writeToWord(formData, aiData) {
             let cleanText = finalRawText.replace(/\*\*/g, "").replace(/\*/g, "").replace(/#/g, "").replace(/（字数：.*?）/g, "").replace(/\(字数[：:].*?\)/g, "");
             cleanText = cleanText.replace(/\n\s*\n+/g, "\n").trim();
             cleanText = cleanText.replace(/\\n/g, "\n");
-            cleanText = cleanText.replace(/([^\n])(\d+[.．、)）]\s*)/g, "$1\n$2");
 
             for (const targetControl of targetControls) {
                 let isFirstInsert = true;

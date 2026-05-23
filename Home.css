@@ -17,7 +17,7 @@
 html, body {
     height: 100%;
     margin: 0;
-    overflow: hidden; /* 彻底禁止 body 出现滚动条 */
+    overflow: hidden; 
 }
 
 body {
@@ -27,8 +27,8 @@ body {
 }
 
 .app-container {
-    height: 100%; /* 占满窗格高度 */
-    overflow-y: auto; /* 内容超出时内部滚动 */
+    height: 100%; 
+    overflow-y: auto;
     overflow-x: hidden;
     padding: 16px;
     width: 100%;
@@ -503,7 +503,48 @@ textarea {
     user-select: none;
     display: flex;
     align-items: center;
+    justify-content: space-between;
     min-height: 42px;
+}
+
+
+.topic-action {
+    display: flex; 
+    align-items: center;
+    justify-content: center;
+    margin-left: 8px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: transparent;
+    color: #1B7A3D;
+    cursor: pointer;
+    flex-shrink: 0;
+    visibility: hidden;
+    transition: background 0.2s, transform 0.1s, visibility 0.1s;
+}
+
+
+    .topic-action:hover {
+        background: rgba(27, 122, 61, 0.1);
+    }
+
+    .topic-action:active {
+        transform: scale(0.9);
+    }
+
+    .topic-action svg {
+        width: 14px;
+        height: 14px;
+        stroke: currentColor;
+        fill: none;
+        stroke-width: 2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+    }
+
+.topic-item.selected .topic-action {
+    visibility: visible;
 }
 
     .topic-item:last-child {
@@ -514,17 +555,17 @@ textarea {
         background-color: #F9F9F9;
     }
 
-    .topic-item.selected {
-        background-color: #E8F5E9;
-        color: var(--success-color);
-        font-weight: 600;
-    }
+.topic-item.selected {
+    background-color: #E8F5E9;
+    color: var(--success-color);
+    font-weight: 400; 
+}
 
-    .topic-item.placeholder {
-        background-color: #FAFAFA;
-        border-bottom: 1px dashed #D1D1D6;
-        font-size: 12px;
-    }
+.topic-item.placeholder {
+    background-color: #FAFAFA;
+    border-bottom: 1px dashed #D1D1D6;
+    font-size: 13px;
+}
 
 .drag-handle {
     height: 18px;
@@ -942,35 +983,40 @@ input:checked + .slider {
         opacity: 1;
     }
 
-/* 外层容器：允许换行，gap控制行间距 */
+
 .naming-container {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px 0; /* 行间距 */
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px 10px;
     width: 100%;
 }
 
-/* 每一行：内部弹性布局，最小宽度保证一行至少容纳两个输入框 */
-.naming-row {
-    display: flex;
-    align-items: center;
-    flex: 1 1 100%; /* 默认占满一行 */
-    min-width: 280px; /* 低于此宽度自动换行 */
-    gap: 6px;
-}
-
-/* 当外层空间充裕时，两行并排（每行占一半） */
-@media (min-width: 600px) { /* 可根据实际调整 */
-    .naming-row {
-        flex: 1 1 50%;
+/* 中屏：两列 */
+@media (max-width: 520px) {
+    .naming-container {
+        grid-template-columns: repeat(2, 1fr);
     }
 }
 
-/* 输入框容器：等分剩余空间，并提升自身层级 */
+/* 窄屏：一列 */
+@media (max-width: 320px) {
+    .naming-container {
+        grid-template-columns: 1fr;
+    }
+}
+
+
+.naming-group {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0; 
+}
+
 .naming-combo {
-    position: relative; /* 为下拉菜单提供定位基准 */
-    flex: 1 1 0;
-    min-width: 80px;
+    position: relative;
+    flex: 1 1 auto;
+    min-width: 0;
     display: flex;
 }
 
@@ -982,17 +1028,52 @@ input:checked + .slider {
         border: 1px solid var(--border-color);
         border-radius: 6px;
         background: var(--card-bg);
+        text-overflow: ellipsis;
+        overflow: hidden;
+        white-space: nowrap;
     }
+
+
+.naming-sep {
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #E5E5EA;
+    border-radius: 4px;
+    font-weight: bold;
+    font-size: 14px;
+    cursor: pointer;
+    user-select: none;
+    transition: 0.2s;
+    color: var(--text-main);
+    flex-shrink: 0;
+    margin: 0;
+}
+
+    .naming-sep:hover {
+        background: #D1D1D6;
+    }
+
 
 .naming-combo-arrow {
     position: absolute;
-    right: 6px;
+    right: 8px;
     top: 50%;
     transform: translateY(-50%);
     width: 14px;
     height: 14px;
     cursor: pointer;
     color: var(--text-sub);
+    transition: transform 0.2s ease; 
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+}
+.naming-combo.list-open .naming-combo-arrow {
+    transform: translateY(-50%) rotate(180deg);
 }
 
     .naming-combo-arrow svg {
@@ -1005,7 +1086,6 @@ input:checked + .slider {
         stroke-linejoin: round;
     }
 
-
 .naming-combo-list {
     position: absolute;
     top: 100%;
@@ -1016,7 +1096,7 @@ input:checked + .slider {
     border: 1px solid var(--border-color);
     border-radius: 6px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    z-index: 10000; 
+    z-index: 10000;
     opacity: 0;
     visibility: hidden;
     transform: translateY(-8px);
@@ -1047,31 +1127,123 @@ input:checked + .slider {
         color: var(--accent-color);
     }
 
-.naming-sep {
-    width: 26px;
-    height: 26px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: #E5E5EA;
-    border-radius: 4px;
-    font-weight: bold;
-    font-size: 14px;
-    cursor: pointer;
-    user-select: none;
-    transition: 0.2s;
-    color: var(--text-main);
-    flex-shrink: 0;
-}
-
-    .naming-sep:hover {
-        background: #D1D1D6;
-    }
 
 .naming-container,
-.naming-row,
+.naming-group,
 .naming-combo,
 .input-group,
 .form-container {
     overflow: visible !important;
 }
+select {
+    appearance: none;
+    -webkit-appearance: none;
+    background: var(--card-bg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238E8E93' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") no-repeat right 12px center;
+    background-size: 12px;
+    padding-right: 36px;
+    transition: background-image 0.2s, border-color 0.2s, box-shadow 0.2s;
+    cursor: pointer;
+}
+
+    select:focus {
+        border-color: var(--accent-color);
+        box-shadow: 0 0 0 2px rgba(0,122,255,0.2);
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23007AFF' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='18 15 12 9 6 15'%3E%3C/polyline%3E%3C/svg%3E");
+    }
+
+.custom-dropdown {
+    position: relative;
+    width: 100%;
+    user-select: none;
+}
+
+.custom-dropdown-display {
+    width: 100%;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 10px 32px 10px 12px;
+    font-size: 14px;
+    background: var(--card-bg);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+    .custom-dropdown-display:hover,
+    .custom-dropdown-display.active {
+        border-color: var(--accent-color);
+    }
+
+.custom-dropdown-arrow {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 16px;
+    height: 16px;
+    color: var(--text-sub);
+    transition: transform 0.2s ease;
+    pointer-events: none;
+}
+
+    .custom-dropdown-arrow svg {
+        width: 100%;
+        height: 100%;
+        stroke: currentColor;
+        fill: none;
+        stroke-width: 2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+    }
+
+
+.custom-dropdown.active .custom-dropdown-arrow {
+    transform: translateY(-50%) rotate(180deg);
+    color: var(--accent-color);
+}
+
+.custom-dropdown-list {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    margin-top: 6px;
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.1);
+    z-index: 10000;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-8px);
+    transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
+    pointer-events: none;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.custom-dropdown.active .custom-dropdown-list {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+
+.custom-dropdown-item {
+    padding: 12px 14px;
+    font-size: 14px;
+    cursor: pointer;
+    border-bottom: 1px solid #F2F2F7;
+    transition: background 0.2s;
+}
+
+    .custom-dropdown-item:last-child {
+        border-bottom: none;
+    }
+
+    .custom-dropdown-item:hover {
+        background: #F9F9F9;
+    }

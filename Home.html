@@ -43,7 +43,7 @@
                 </div>
                 <div class="template-card" id="card-custom">
                     <div class="card-icon" style="color: var(--text-sub);">
-                        <svg viewBox="0 0 24 24"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 17 22 12"></polyline></svg>
+                        <svg viewBox="0 0 24 24"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 22 22 12"></polyline></svg>
                     </div>
                     <h3>自定义模板</h3>
                     <p>自由配置文档标记与 AI 规则。</p>
@@ -148,27 +148,40 @@
             <div class="form-container">
                 <div class="input-group">
                     <label>默认启动页面</label>
-                    <select id="setting-default-view" style="width: 100%; border: 1px solid var(--border-color); border-radius: 8px; padding: 10px 12px; background: var(--card-bg);"></select>
+                    <div class="custom-dropdown" id="setting-default-view-dropdown">
+                        <div class="custom-dropdown-display">
+                            <span id="setting-default-view-text">主页</span>
+                            <span class="custom-dropdown-arrow"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
+                        </div>
+                        <div class="custom-dropdown-list">
+                            <div class="custom-dropdown-item" data-value="view-home">主页</div>
+                            <div class="custom-dropdown-item" data-value="view-main">教案生成页面</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label>默认搜索引擎</label>
+                    <div class="custom-dropdown" id="setting-search-engine-dropdown">
+                        <div class="custom-dropdown-display">
+                            <span id="setting-search-engine-text">百度</span>
+                            <span class="custom-dropdown-arrow"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
+                        </div>
+                        <div class="custom-dropdown-list">
+                            <div class="custom-dropdown-item" data-value="baidu">百度</div>
+                            <div class="custom-dropdown-item" data-value="bing">必应</div>
+                            <div class="custom-dropdown-item" data-value="google">Google</div>
+                        </div>
+                    </div>
                 </div>
                 <div class="input-group"><label>模型标识Model</label><input type="text" id="setting-model" autocomplete="off" spellcheck="false"></div>
                 <div class="input-group"><label>接口地址API_url</label><input type="text" id="setting-url" autocomplete="off" spellcheck="false"></div>
                 <div class="input-group"><label>鉴权密钥API_key</label><input type="password" id="setting-key" autocomplete="new-password" spellcheck="false"></div>
 
-                <div class="input-group" style="margin-top: 8px;">
-                    <label>默认保存位置</label>
-                    <div style="display: flex; gap: 8px; width: 100%; align-items: stretch;">
-                        <input type="text" id="setting-save-path" autocomplete="off" spellcheck="false" placeholder="浏览或输入保存路径" style="flex: 1; height: 38px; margin: 0;">
-                        <button id="browse-path-btn" class="icon-btn" type="button" style="border-radius: 8px; width: 42px; height: 38px; flex-shrink: 0; margin: 0;" title="浏览文件夹">
-                            <svg viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
-                        </button>
-                    </div>
-                </div>
 
                 <div class="input-group" style="margin-top: 8px;">
                     <label>文件默认命名方式</label>
                     <div class="naming-container">
-
-                        <div class="naming-row">
+                        <div class="naming-group">
                             <div class="naming-combo">
                                 <input type="text" id="naming-val-0" placeholder="模块1" autocomplete="off">
                                 <div class="naming-combo-arrow"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"></polyline></svg></div>
@@ -180,6 +193,9 @@
                                 </div>
                             </div>
                             <div class="naming-sep" id="naming-sep-0" data-val="-">-</div>
+                        </div>
+
+                        <div class="naming-group">
                             <div class="naming-combo">
                                 <input type="text" id="naming-val-1" placeholder="模块2" autocomplete="off">
                                 <div class="naming-combo-arrow"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"></polyline></svg></div>
@@ -190,10 +206,10 @@
                                     <div class="naming-combo-item">教学目的</div>
                                 </div>
                             </div>
+                            <div class="naming-sep" id="naming-sep-1" data-val="-">-</div>
                         </div>
 
-                        <div class="naming-row">
-                            <div class="naming-sep" id="naming-sep-1" data-val="-">-</div>
+                        <div class="naming-group">
                             <div class="naming-combo">
                                 <input type="text" id="naming-val-2" placeholder="模块3" autocomplete="off">
                                 <div class="naming-combo-arrow"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"></polyline></svg></div>
@@ -205,6 +221,9 @@
                                 </div>
                             </div>
                             <div class="naming-sep" id="naming-sep-2" data-val="-">-</div>
+                        </div>
+
+                        <div class="naming-group">
                             <div class="naming-combo">
                                 <input type="text" id="naming-val-3" placeholder="模块4" autocomplete="off">
                                 <div class="naming-combo-arrow"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"></polyline></svg></div>
@@ -221,6 +240,7 @@
 
                 <button class="primary-btn btn-save" id="save-settings" style="margin-top:16px;">保存设置</button>
             </div>
+            <div style="text-align: center; font-size: 11px; color: var(--text-sub); margin-top: 16px; opacity: 0.7;">vision 1.0.0</div>
         </div>
 
         <div id="view-add-class" class="view-section">
