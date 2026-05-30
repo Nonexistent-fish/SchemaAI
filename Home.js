@@ -32,14 +32,20 @@ function injectCustomStyles() {
     document.head.appendChild(style);
 }
 
-let CONFIG = { teacher: "", major: "", model: "", url: "", key: "", classes: [], defaultView: "view-home", namingVals: [], namingSeps: [], savePath: "", searchEngine: "baidu" };
+let CONFIG = {
+    teacher: "", major: "", model: "", url: "", key: "",
+    classes: [], defaultView: "view-home", namingVals: [], namingSeps: [],
+    searchEngine: "baidu",
+    customTemplateTitle: "",
+    customTemplateDesc: "",
+    customTemplateData: null
+};
 let selectedClass = "";
 let currentTopicCount = 3;
 let generatedTopics = [];
 const ITEM_HEIGHT = 43;
 let uploadedImages = [];
 let lastRootView = "view-home";
-
 
 let lastFormData = null;
 let lastAiData = null;
@@ -56,6 +62,12 @@ function switchView(viewId) {
     if (viewId === "view-home" || viewId === "view-main") lastRootView = viewId;
     document.querySelectorAll(".view-section").forEach(el => el.classList.remove("active"));
     document.getElementById(viewId).classList.add("active");
+
+    if (viewId === "view-custom") {
+        initCustomView();
+    } else if (viewId === "view-home") {
+        renderSavedTemplateCards();
+    }
 }
 
 function initStorage() {
@@ -116,6 +128,10 @@ function initStorage() {
     }
 
     renderClassDropdown();
+    const customTitleInput = document.getElementById("custom-template-title");
+    const customDescInput = document.getElementById("custom-template-desc");
+    if (customTitleInput) customTitleInput.value = CONFIG.customTemplateTitle || "";
+    if (customDescInput) customDescInput.value = CONFIG.customTemplateDesc || "";
 }
 
 function saveStorage() { localStorage.setItem("schema_config", JSON.stringify(CONFIG)); }
@@ -124,6 +140,44 @@ function showDevToast() {
     const toast = document.getElementById("dev-toast");
     toast.classList.add("show");
     setTimeout(() => toast.classList.remove("show"), 2000);
+}
+
+function renderSavedTemplateCards() {
+    const grid = document.querySelector("#view-home .template-grid");
+    if (!grid) return;
+    const existingCards = grid.querySelectorAll(".template-card.saved-template");
+    existingCards.forEach(c => c.remove());
+
+    if (CONFIG.customTemplateData) {
+        const card = document.createElement("div");
+        card.className = "template-card saved-template";
+        card.style.order = "0";   
+        card.innerHTML = `
+            <div style="position:relative;">
+                <div class="card-icon" style="color: var(--success-color);">
+                    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
+                </div>
+                <button class="delete-template-btn" title="删除模板">
+                    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+            <h3>${CONFIG.customTemplateData.title || "自定义模板"}</h3>
+            <p>${CONFIG.customTemplateData.desc || ""}</p>
+        `;
+
+        card.querySelector('.delete-template-btn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            CONFIG.customTemplateData = null;
+            saveStorage();
+            renderSavedTemplateCards();
+        });
+
+        card.addEventListener("click", () => {
+            switchView("view-template-use");
+            renderTemplateUseView();
+        });
+        grid.appendChild(card);
+    }
 }
 
 function initUIEvents() {
@@ -187,7 +241,9 @@ function initUIEvents() {
     };
 
     document.getElementById("card-lesson-plan").onclick = () => switchView("view-main");
-    document.getElementById("card-custom").onclick = showDevToast;
+    document.getElementById("card-custom").onclick = () => {
+        switchView("view-custom");
+    };
 
     document.querySelectorAll(".nav-back-btn").forEach(btn => {
         btn.onclick = () => switchView(lastRootView);
@@ -198,7 +254,6 @@ function initUIEvents() {
         CONFIG.major = document.getElementById("setting-major").value.trim();
         saveStorage(); switchView(lastRootView);
     };
-
 
     document.querySelectorAll('.naming-combo').forEach(combo => {
         const input = combo.querySelector('input');
@@ -226,7 +281,6 @@ function initUIEvents() {
         document.querySelectorAll('.naming-combo').forEach(c => c.classList.remove('list-open'));
     });
 
-
     const sepTypes = ['-', '+', ' ', ','];
     const sepLabels = ['-', '+', ' ', ','];
     for (let i = 0; i < 3; i++) {
@@ -241,7 +295,6 @@ function initUIEvents() {
             };
         }
     }
-
 
     document.getElementById("save-settings").onclick = () => {
         const viewText = document.getElementById("setting-default-view-text");
@@ -268,6 +321,9 @@ function initUIEvents() {
         CONFIG.model = document.getElementById("setting-model").value.trim();
         CONFIG.url = document.getElementById("setting-url").value.trim();
         CONFIG.key = document.getElementById("setting-key").value.trim();
+        CONFIG.customTemplateTitle = document.getElementById("custom-template-title").value.trim();
+        CONFIG.customTemplateDesc = document.getElementById("custom-template-desc").value.trim();
+        saveStorage();
 
         CONFIG.namingVals = [];
         CONFIG.namingSeps = [];
@@ -333,7 +389,6 @@ function initUIEvents() {
         };
     }
 
-
     document.addEventListener('paste', (e) => {
         if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
 
@@ -350,7 +405,7 @@ function initUIEvents() {
                     showStatus("已成功捕获图片", "success");
                 };
                 reader.readAsDataURL(blob);
-                return; 
+                return;
             }
         }
     });
@@ -383,7 +438,6 @@ function initUIEvents() {
         renderImageGallery();
     };
 
-
     document.getElementById("save-doc-btn").onclick = handleSaveDocument;
 
     document.querySelectorAll('.custom-dropdown').forEach(dropdown => {
@@ -394,7 +448,7 @@ function initUIEvents() {
 
         display.addEventListener('click', (e) => {
             e.stopPropagation();
-            const wasActive = dropdown.classList.contains('active');  
+            const wasActive = dropdown.classList.contains('active');
             document.querySelectorAll('.custom-dropdown').forEach(d => d.classList.remove('active'));
             if (!wasActive) {
                 dropdown.classList.add('active');
@@ -412,6 +466,8 @@ function initUIEvents() {
     document.addEventListener('click', () => {
         document.querySelectorAll('.custom-dropdown').forEach(d => d.classList.remove('active'));
     });
+
+    // 注意：自定义模板按钮的事件在 custom.js 中绑定
 }
 
 function openImageDescModal(id) {
@@ -555,13 +611,13 @@ async function fetchAndRenderTopics(targetCount, isDragging) {
             actionSpan.innerHTML = `<svg viewBox="0 0 24 24" style="stroke:#1B7A3D;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>`;
             actionSpan.title = '搜索图片或复制课题';
             item.appendChild(actionSpan);
-            const originalSvg = actionSpan.innerHTML; 
+            const originalSvg = actionSpan.innerHTML;
             actionSpan.addEventListener('click', (e) => {
                 e.stopPropagation();
                 const topic = textSpan.innerText;
                 actionSpan.innerHTML = `<svg viewBox="0 0 24 24" style="stroke:#1B7A3D;"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
                 setTimeout(() => {
-                    actionSpan.innerHTML = originalSvg; 
+                    actionSpan.innerHTML = originalSvg;
                 }, 1000);
                 const engine = CONFIG.searchEngine || 'baidu';
                 let url = '';
@@ -572,9 +628,7 @@ async function fetchAndRenderTopics(targetCount, isDragging) {
                 } else {
                     url = `https://www.google.com/search?tbm=isch&q=${encodeURIComponent(topic)}`;
                 }
-
-                const newWin = window.open(url, '_blank');
-              
+                window.open(url, '_blank');
             });
 
             setTimeout(() => {
@@ -1081,7 +1135,42 @@ async function writeToWord(formData, aiData) {
             }
         }
         await context.sync();
-        if (writeCount === 0) throw new Error("未检测到对应的占位控件");
+        if (writeCount === 0) {
+            // 如果没有任何内容控件，则将内容以纯文本形式插入文档末尾
+            const body = context.document.body;
+            let insertText = '';
+            // 按照一定顺序输出映射内容（教师、日期、课程、课题、目的、新课等）
+            const order = [
+                "cc_teacher", "cc_date", "cc_course", "cc_topic",
+                "cc_objectives", "cc_focus", "cc_difficulties", "cc_aids",
+                "cc_process_org", "cc_process_new", "cc_process_summary",
+                "cc_process_hw", "cc_postscript"
+            ];
+            const labels = {
+                "cc_teacher": "授课教师",
+                "cc_date": "日期",
+                "cc_course": "课程名称",
+                "cc_topic": "章节课题",
+                "cc_objectives": "教学目的",
+                "cc_focus": "教学重点",
+                "cc_difficulties": "教学难点",
+                "cc_aids": "教学辅助手段",
+                "cc_process_org": "组织教学",
+                "cc_process_new": "讲授新课",
+                "cc_process_summary": "归纳小结",
+                "cc_process_hw": "作业布置",
+                "cc_postscript": "教学后记"
+            };
+            order.forEach(key => {
+                const text = contentMapping[key] || '';
+                if (text.trim()) {
+                    insertText += labels[key] + "：\n" + text + "\n\n";
+                }
+            });
+            if (insertText) {
+                body.insertText(insertText, Word.InsertLocation.end);
+            }
+        }
     }).catch(e => {
         if (e instanceof OfficeExtension.Error && e.code === "AccessDenied") throw new Error("文档只读，无法写入");
         throw e;

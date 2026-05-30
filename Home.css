@@ -1247,3 +1247,368 @@ select {
     .custom-dropdown-item:hover {
         background: #F9F9F9;
     }
+
+/* 自定义控件列表 */
+.control-item {
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    margin-bottom: 10px;
+    background: var(--card-bg);
+    overflow: hidden;
+}
+
+.control-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    cursor: pointer;
+    transition: background 0.2s;
+    user-select: none;
+}
+
+    .control-header:hover {
+        background: #F9F9F9;
+    }
+
+.control-header-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    min-width: 0;
+}
+
+    .control-header-left input {
+        border: none;
+        background: transparent;
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--text-main);
+        padding: 2px 4px;
+        width: 120px;
+        outline: 1px solid transparent;
+        border-radius: 4px;
+        transition: outline 0.2s;
+    }
+
+        .control-header-left input:focus {
+            outline: 1px solid var(--accent-color);
+            background: white;
+        }
+
+.control-tag {
+    font-size: 12px;
+    color: var(--text-sub);
+    background: var(--bg-color);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-family: monospace;
+}
+
+.control-arrow {
+    width: 18px;
+    height: 18px;
+    color: var(--text-sub);
+    transition: transform 0.2s ease;
+    flex-shrink: 0;
+}
+
+.control-item.expanded .control-arrow {
+    transform: rotate(180deg);
+}
+
+.control-body {
+    display: none;
+    padding: 0 12px 12px;
+    border-top: 1px solid var(--border-color);
+}
+
+.control-item.expanded .control-body {
+    display: block;
+}
+
+.control-section {
+    margin-top: 12px;
+}
+
+    .control-section label {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-main);
+        margin-bottom: 4px;
+        display: block;
+    }
+
+.ai-toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 8px;
+}
+
+.ai-settings {
+    margin-top: 8px;
+    display: none;
+}
+
+    .ai-settings.show {
+        display: block;
+    }
+
+.custom-select-mini {
+    width: 100%;
+    max-width: 160px; /* 限制最大宽度 */
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 6px 8px;
+    font-size: 13px;
+    background: var(--card-bg);
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,...");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    background-size: 12px;
+    padding-right: 28px;
+}
+
+.control-section-row select {
+    flex-shrink: 0; /* 阻止随内容撑开 */
+}
+/* 自定义模板标题与描述 */
+.custom-intro {
+    margin-bottom: 16px;
+}
+
+/* 控件标题栏：淡蓝色背景 */
+.control-header {
+    background-color: #EFF6FF;
+    border-bottom: 1px solid var(--border-color);
+}
+
+/* 内容区默认折叠，展开时平滑过渡 */
+.control-body {
+    display: block;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+    padding: 0 12px;
+    background: white;
+    border-top: none;
+}
+
+.control-item.expanded .control-body {
+    max-height: 600px; /* 足够容纳所有选项 */
+    padding: 12px;
+    border-top: 1px solid var(--border-color);
+}
+
+/* 输入框内容与手动输入类型并排 */
+.control-section-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap; /* 允许在小屏幕下换行，但大屏幕正常 */
+}
+
+    .control-section-row label {
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+
+    .control-section-row select {
+        font-size: 14px;
+        padding: 6px 8px;
+    }
+
+/* 布尔值特有字段 */
+.boolean-fields {
+    margin-top: 10px;
+    border-top: 1px dashed var(--border-color);
+    padding-top: 10px;
+}
+.control-section-title {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--text-main);
+    margin: 12px 0 6px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.control-sub-item {
+    margin-left: 12px; /* 缩进 */
+    margin-bottom: 8px;
+}
+.boolean-actions-row {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    margin-top: 8px;
+}
+
+.boolean-action-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+    .boolean-action-item label {
+        font-size: 12px;
+        margin-bottom: 4px;
+    }
+
+.fixed-value-input {
+    margin-top: 6px;
+    display: none;
+}
+
+    .fixed-value-input.show {
+        display: block;
+    }
+.control-section-title {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--text-main);
+    margin: 12px 0 6px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.control-sub-item {
+    margin-left: 12px;
+    margin-bottom: 8px;
+}
+
+.boolean-actions-row {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    margin-top: 8px;
+}
+
+.boolean-action-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+    .boolean-action-item label {
+        font-size: 12px;
+        margin-bottom: 4px;
+    }
+
+.fixed-value-input {
+    margin-top: 6px;
+    display: none;
+    width: 100%;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 6px 8px;
+    font-size: 13px;
+}
+
+    .fixed-value-input.show {
+        display: block;
+    }
+/* 模板使用视图控件项 */
+.template-use-item {
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    margin-bottom: 10px;
+    background: var(--card-bg);
+    padding: 12px;
+}
+
+    .template-use-item .control-header {
+        background: transparent;
+        cursor: default;
+        padding: 0 0 8px 0;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .template-use-item .control-arrow {
+        display: none;
+    }
+
+.template-use-input {
+    width: 100%;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 14px;
+    background: var(--bg-color);
+    color: var(--text-main);
+    opacity: 0.8;
+    margin-top: 8px;
+}
+
+/* 选择选项列表 */
+.choice-options-list {
+    margin-top: 8px;
+}
+
+.choice-option-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+
+    .choice-option-row input[type="text"] {
+        flex: 1;
+        height: 32px;
+        font-size: 13px;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        padding: 0 8px;
+    }
+
+    .choice-option-row input[type="radio"] {
+        width: 16px;
+        height: 16px;
+        margin: 0;
+        accent-color: var(--accent-color);
+    }
+
+.add-option-btn {
+    background: none;
+    border: 1px dashed var(--border-color);
+    border-radius: 4px;
+    padding: 4px 8px;
+    cursor: pointer;
+    color: var(--accent-color);
+    font-size: 13px;
+    margin-top: 4px;
+}
+
+    .add-option-btn:hover {
+        background: var(--bg-color);
+    }
+.delete-template-btn {
+    width: 24px;
+    height: 24px;
+    background: none;
+    border: none;
+    color: #FF3B30;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: 0.2s;
+    position: absolute;
+    top: -10px;
+    right: 4px;
+    padding: 0;
+}
+
+    .delete-template-btn:hover {
+        background: rgba(255,59,48,0.1);
+    }
+
+    .delete-template-btn svg {
+        width: 14px;
+        height: 14px;
+    }
