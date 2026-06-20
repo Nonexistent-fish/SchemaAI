@@ -17,66 +17,82 @@
                 </button>
             </div>
 
-            <a href="https://github.com/Nonexistent-fish/SchemaAI" target="_blank" class="logo-link" title="访问 GitHub 仓库">
-                <img src="Images/SCHEMAAI logo.png" alt="SchemaAI" class="logo-img" onerror="this.src='https://via.placeholder.com/300x85?text=SchemaAI'">
-            </a>
+            <div class="header-center">
+                <a href="https://github.com/Nonexistent-fish/SchemaAI" target="_blank" class="logo-link" title="访问代码仓库">
+                    <img src="Images/SCHEMAAI logo.png" alt="SchemaAI" class="logo-img" onerror="this.src='https://via.placeholder.com/300x85?text=SchemaAI'">
+                </a>
+                <div id="host-badge" class="host-badge"></div>
+            </div>
 
             <div class="header-right">
                 <button id="nav-user" class="icon-btn" title="用户信息">
                     <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
                 </button>
-                <button id="nav-settings" class="icon-btn" title="设置">
+                <button id="nav-settings" class="icon-btn" title="系统配置">
                     <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
                 </button>
             </div>
         </div>
 
         <div id="view-home" class="view-section">
-            <h2 style="font-size: 16px; margin-bottom: 16px; color: var(--text-main);">选择生成模板</h2>
-            <div class="template-grid">
-                <div class="template-card" id="card-lesson-plan">
-                    <div class="card-icon">
+            <h2 class="home-title container-constraint" style="margin-bottom: 20px; font-size: 18px; color: var(--text-main); font-weight: 700; padding-left: 4px;">选择模板</h2>
+            <div class="template-grid container-constraint">
+                <div class="template-card" id="card-primary-tool">
+                    <div class="card-icon" id="primary-tool-icon">
                         <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
                     </div>
-                    <h3>教案生成</h3>
-                    <p>智能拆解课题，图文并茂排版。</p>
+                    <h3 id="primary-tool-title">教案生成</h3>
+                    <p id="primary-tool-desc">拆解课题，生成文档。</p>
                 </div>
-                <div class="template-card" id="card-custom" style="order:1;">
+                <div class="template-card" id="card-custom">
                     <div class="card-icon" style="color: var(--text-sub);">
-                        <svg viewBox="0 0 24 24">
+                        <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
                             <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
                             <polyline points="2 17 12 22 22 17"></polyline>
-                            <polyline points="2 12 12 17 22 12"></polyline> 
+                            <polyline points="2 12 12 22 22 12"></polyline>
                         </svg>
                     </div>
                     <h3>自定义模板</h3>
-                    <p>自由配置文档标记与 AI 规则。</p>
+                    <p>配置文档标记与规则。</p>
                 </div>
             </div>
         </div>
 
         <div id="view-main" class="view-section">
-            <div class="form-container">
+            <div class="view-header">
+                <button class="nav-back-btn"><svg viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>返回</button>
+            </div>
+            <div class="form-container container-constraint">
+                <div class="input-group">
+                    <label>课程名称</label>
+                    <div class="custom-select-wrapper" id="course-select-wrapper">
+                        <div class="custom-select-display" id="course-select-display" style="padding: 0; position: relative; overflow: hidden; cursor: text;">
+                            <input type="text" id="course" placeholder="请选择或输入" autocomplete="off" spellcheck="false" style="border:none; padding:12px 36px 12px 16px; background:transparent; outline:none; box-shadow:none; width: 100%; border-radius: 12px; margin: 0;">
+                            <div id="course-arrow-zone" style="position: absolute; right: 0; top: 0; bottom: 0; width: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                                <svg class="custom-select-icon" viewBox="0 0 24 24" style="position: static; transform: none;"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                            </div>
+                        </div>
+                        <div class="custom-select-dropdown" id="course-select-dropdown" style="display: none;"></div>
+                    </div>
+                </div>
+
                 <div class="input-group">
                     <label>授课班级</label>
                     <div class="custom-select-wrapper" id="class-select-wrapper">
-                        <div class="custom-select-display" id="class-select-display">
-                            <span id="class-select-display-text">请选择或添加</span>
-                            <svg class="custom-select-icon" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        <div class="custom-select-display" id="class-select-display" style="padding: 0; position: relative; overflow: hidden; cursor: text;">
+                            <input type="text" id="class-input-val" placeholder="请选择或输入" autocomplete="off" spellcheck="false" style="border:none; padding:12px 36px 12px 16px; background:transparent; outline:none; box-shadow:none; width: 100%; border-radius: 12px; margin: 0;">
+                            <div id="class-arrow-zone" style="position: absolute; right: 0; top: 0; bottom: 0; width: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                                <svg class="custom-select-icon" viewBox="0 0 24 24" style="position: static; transform: none;"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                            </div>
                         </div>
                         <div class="custom-select-dropdown" id="class-select-dropdown" style="display: none;"></div>
                     </div>
                 </div>
 
                 <div class="input-group">
-                    <label>课程名称</label>
-                    <input type="text" id="course" value="" placeholder="请输入课程名称" autocomplete="off" spellcheck="false">
-                </div>
-
-                <div class="input-group">
                     <label>章节课题</label>
                     <div class="topic-input-wrapper" id="topic-wrapper">
-                        <input type="text" id="topic" placeholder="输入大类，如：自动变速箱" autocomplete="off" spellcheck="false">
+                        <input type="text" id="topic" placeholder="" autocomplete="off" spellcheck="false">
                         <button id="ai-topic-btn"><span class="ai-text">AI</span></button>
                     </div>
                     <div id="ai-topic-panel" class="topic-panel" style="display: none;">
@@ -85,11 +101,11 @@
                     </div>
                 </div>
 
-                <div class="input-group" style="margin-bottom: 8px;">
+                <div class="input-group" style="margin-bottom: 12px;">
                     <div class="section-header">
-                        <label style="margin: 0;">图文并茂</label>
+                        <label style="margin: 0;">图文辅助</label>
                         <div style="display: flex; gap: 8px; align-items: center;">
-                            <button id="clipboard-img-btn" class="icon-btn small" title="点击抓取剪贴板图片" type="button">
+                            <button id="clipboard-img-btn" class="icon-btn small" title="点击提取剪贴板图片" type="button">
                                 <svg viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
                             </button>
                             <button id="add-img-btn" class="icon-btn small" title="导入本地图片" type="button">
@@ -112,7 +128,7 @@
                 </div>
 
                 <div class="input-group toggle-group">
-                    <label for="need-postscript">自动生成“教学后记”</label>
+                    <label for="need-postscript">生成教学后记</label>
                     <label class="switch">
                         <input type="checkbox" id="need-postscript" checked>
                         <span class="slider round"></span>
@@ -120,13 +136,13 @@
                 </div>
 
                 <div class="input-group">
-                    <label>核心教学内容 (可选)</label>
-                    <textarea id="content" rows="2" placeholder="输入侧重点..." autocomplete="off" spellcheck="false"></textarea>
+                    <label>核心内容要求 (可选)</label>
+                    <textarea id="content" rows="2" placeholder="" autocomplete="off" spellcheck="false"></textarea>
                 </div>
 
                 <div class="generate-action-bar">
-                    <button id="generate-btn" class="primary-btn" style="margin-top: 0;">执行生成</button>
-                    <button id="save-doc-btn" class="save-icon-btn" title="一键保存文档">
+                    <button id="generate-btn" class="primary-btn action-shadow" style="margin-top: 0;">执行写入</button>
+                    <button id="save-doc-btn" class="save-icon-btn" title="保存文档">
                         <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                     </button>
                 </div>
@@ -138,169 +154,193 @@
             </div>
         </div>
 
+        <div id="view-excel-main" class="view-section">
+            <div class="view-header">
+                <button class="nav-back-btn"><svg viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>返回</button>
+                <span class="view-title">授课日志</span>
+            </div>
+            <div class="form-container container-constraint" style="padding: 24px 16px;">
+                <div id="excel-daily-forms" style="text-align: left; margin-bottom: 24px;"></div>
+
+                <div class="generate-action-bar">
+                    <button id="generate-excel-btn" class="primary-btn action-shadow" style="margin-top: 0;">生成并写入表格</button>
+                    <button id="save-excel-btn" class="save-icon-btn" title="保存表格文件">
+                        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    </button>
+                </div>
+
+                <div id="excel-progress-container" class="progress-container">
+                    <div id="excel-progress-bar" class="progress-bar"></div>
+                </div>
+                <div id="excel-status-msg" class="status-msg" style="text-align: center;"></div>
+            </div>
+        </div>
+
         <div id="view-user" class="view-section">
-            <div class="view-header"><button class="nav-back-btn"><svg viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>返回</button><span class="view-title">用户信息</span></div>
-            <div class="form-container">
-                <div class="input-group"><label>教师姓名</label><input type="text" id="setting-teacher" autocomplete="off" spellcheck="false"></div>
-                <div class="input-group"><label>所授专业</label><input type="text" id="setting-major" autocomplete="off" spellcheck="false"></div>
-                <button class="primary-btn btn-save" id="save-user">保存配置</button>
+            <div class="view-header">
+                <button class="nav-back-btn"><svg viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>返回</button>
+                <span class="view-title"></span>
+            </div>
+            <div class="form-container" style="max-width: 900px; margin: 0 auto;">
+                <div class="input-group">
+                    <label>教师姓名</label>
+                    <input type="text" id="setting-teacher" autocomplete="off" spellcheck="false" placeholder="">
+                </div>
+                <div class="input-group">
+                    <label>所授专业</label>
+                    <input type="text" id="setting-major" autocomplete="off" spellcheck="false" placeholder="">
+                </div>
+
+                <div class="input-group" style="margin-top: 24px; margin-bottom: 12px;">
+                    <div class="section-title-large" style="display:flex; justify-content:space-between; align-items:flex-end;">
+                        <span>课程表</span>
+                        <div id="timetable-drag-hint" style="font-size:12px; font-weight:400; color:var(--text-sub); transition:0.2s;">按住可拖拽复制</div>
+                        <div id="timetable-trash-zone" style="display:none; font-size:13px; font-weight:600; color:var(--error-color); align-items:center; gap:4px; padding: 4px 10px; border-radius: 8px; border: 1px dashed var(--error-color); background: rgba(255, 59, 48, 0.05); cursor: pointer; transition: 0.2s;">
+                            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                            拖至此处清空
+                        </div>
+                    </div>
+                    <div id="timetable-container" class="timetable-scroll-wrapper" style="margin-top: 12px;"></div>
+                </div>
+
+                <div class="input-group" style="margin-top: 32px;">
+                    <div class="section-title-large" style="margin-bottom: 16px;">班级人数配置</div>
+                    <div id="expected-students-container" class="expected-students-grid"></div>
+                </div>
+
+                <button class="primary-btn btn-save action-shadow" id="save-user" style="margin-top: 32px;">保存配置</button>
             </div>
         </div>
 
         <div id="view-settings" class="view-section">
-            <div class="view-header"><button class="nav-back-btn"><svg viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>返回</button><span class="view-title">API 与系统设置</span></div>
-            <div class="form-container">
+            <div class="view-header"><button class="nav-back-btn"><svg viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>返回</button><span class="view-title">系统配置</span></div>
+            <div class="form-container container-constraint">
                 <div class="input-group">
-                    <label>默认启动页面</label>
-                    <div class="custom-dropdown" id="setting-default-view-dropdown">
-                        <div class="custom-dropdown-display">
-                            <span id="setting-default-view-text">主页</span>
-                            <span class="custom-dropdown-arrow"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
-                        </div>
-                        <div class="custom-dropdown-list">
-                            <div class="custom-dropdown-item" data-value="view-home">主页</div>
-                            <div class="custom-dropdown-item" data-value="view-main">教案生成页面</div>
-                        </div>
+                    <label>启动页面</label>
+                    <select id="setting-default-view"></select>
+                </div>
+                <div class="input-group"><label>模型标识 Model</label><input type="text" id="setting-model" autocomplete="off" spellcheck="false"></div>
+                <div class="input-group"><label>接口地址 API_url</label><input type="text" id="setting-url" autocomplete="off" spellcheck="false"></div>
+                <div class="input-group"><label>鉴权密钥 API_key</label><input type="password" id="setting-key" autocomplete="new-password" spellcheck="false"></div>
+
+                <div class="input-group" style="margin-top: 12px;">
+                    <label>保存位置</label>
+                    <div style="display: flex; gap: 12px; width: 100%; align-items: stretch;">
+                        <input type="text" id="setting-save-path" autocomplete="off" spellcheck="false" placeholder="" style="flex: 1; margin: 0;">
+                        <button id="browse-path-btn" class="icon-btn ios-action-btn" type="button" title="浏览路径">
+                            <svg viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+                        </button>
                     </div>
                 </div>
-                <div class="input-group">
-                    <label>默认搜索引擎</label>
-                    <div class="custom-dropdown" id="setting-search-engine-dropdown">
-                        <div class="custom-dropdown-display">
-                            <span id="setting-search-engine-text">百度</span>
-                            <span class="custom-dropdown-arrow"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
-                        </div>
-                        <div class="custom-dropdown-list">
-                            <div class="custom-dropdown-item" data-value="baidu">百度</div>
-                            <div class="custom-dropdown-item" data-value="bing">必应</div>
-                            <div class="custom-dropdown-item" data-value="google">Google</div>
-                        </div>
-                    </div>
-                </div>
-                <div class="input-group"><label>模型标识Model</label><input type="text" id="setting-model" autocomplete="off" spellcheck="false"></div>
-                <div class="input-group"><label>接口地址API_url</label><input type="text" id="setting-url" autocomplete="off" spellcheck="false"></div>
-                <div class="input-group"><label>鉴权密钥API_key</label><input type="password" id="setting-key" autocomplete="new-password" spellcheck="false"></div>
 
-
-                <div class="input-group" style="margin-top: 8px;">
-                    <label>文件默认命名方式</label>
-                    <div class="naming-container">
-                        <div class="naming-group">
+                <div class="input-group" style="margin-top: 16px;">
+                    <label>拼装规则</label>
+                    <div class="naming-grid-container">
+                        <div class="naming-combo-wrapper">
                             <div class="naming-combo">
-                                <input type="text" id="naming-val-0" placeholder="模块1" autocomplete="off">
+                                <input type="text" id="naming-val-0" placeholder="" autocomplete="off" readonly style="cursor: pointer;">
                                 <div class="naming-combo-arrow"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"></polyline></svg></div>
-                                <div class="naming-combo-list">
-                                    <div class="naming-combo-item">课题</div>
-                                    <div class="naming-combo-item">授课教师</div>
-                                    <div class="naming-combo-item">日期</div>
-                                    <div class="naming-combo-item">教学目的</div>
-                                </div>
+                                <div class="naming-combo-list"></div>
                             </div>
                             <div class="naming-sep" id="naming-sep-0" data-val="-">-</div>
                         </div>
 
-                        <div class="naming-group">
+                        <div class="naming-combo-wrapper">
                             <div class="naming-combo">
-                                <input type="text" id="naming-val-1" placeholder="模块2" autocomplete="off">
+                                <input type="text" id="naming-val-1" placeholder="" autocomplete="off" readonly style="cursor: pointer;">
                                 <div class="naming-combo-arrow"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"></polyline></svg></div>
-                                <div class="naming-combo-list">
-                                    <div class="naming-combo-item">课题</div>
-                                    <div class="naming-combo-item">授课教师</div>
-                                    <div class="naming-combo-item">日期</div>
-                                    <div class="naming-combo-item">教学目的</div>
-                                </div>
+                                <div class="naming-combo-list"></div>
                             </div>
                             <div class="naming-sep" id="naming-sep-1" data-val="-">-</div>
                         </div>
 
-                        <div class="naming-group">
+                        <div class="naming-combo-wrapper">
                             <div class="naming-combo">
-                                <input type="text" id="naming-val-2" placeholder="模块3" autocomplete="off">
+                                <input type="text" id="naming-val-2" placeholder="" autocomplete="off" readonly style="cursor: pointer;">
                                 <div class="naming-combo-arrow"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"></polyline></svg></div>
-                                <div class="naming-combo-list">
-                                    <div class="naming-combo-item">课题</div>
-                                    <div class="naming-combo-item">授课教师</div>
-                                    <div class="naming-combo-item">日期</div>
-                                    <div class="naming-combo-item">教学目的</div>
-                                </div>
+                                <div class="naming-combo-list"></div>
                             </div>
                             <div class="naming-sep" id="naming-sep-2" data-val="-">-</div>
                         </div>
 
-                        <div class="naming-group">
+                        <div class="naming-combo-wrapper last">
                             <div class="naming-combo">
-                                <input type="text" id="naming-val-3" placeholder="模块4" autocomplete="off">
+                                <input type="text" id="naming-val-3" placeholder="" autocomplete="off" readonly style="cursor: pointer;">
                                 <div class="naming-combo-arrow"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"></polyline></svg></div>
-                                <div class="naming-combo-list">
-                                    <div class="naming-combo-item">课题</div>
-                                    <div class="naming-combo-item">授课教师</div>
-                                    <div class="naming-combo-item">日期</div>
-                                    <div class="naming-combo-item">教学目的</div>
-                                </div>
+                                <div class="naming-combo-list"></div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <button class="primary-btn btn-save" id="save-settings" style="margin-top:16px;">保存设置</button>
+                <button class="primary-btn btn-save action-shadow" id="save-settings" style="margin-top:24px;">保存配置</button>
             </div>
-            <div style="text-align: center; font-size: 11px; color: var(--text-sub); margin-top: 16px; opacity: 0.7;">vision 1.0.0</div>
         </div>
 
-        <div id="view-add-class" class="view-section">
-            <div class="view-header"><button class="nav-back-btn"><svg viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>返回</button><span class="view-title">添加新班级</span></div>
-            <div class="form-container">
-                <div class="input-group"><label>班级名称</label><input type="text" id="new-class-input" placeholder="输入班级全称" autocomplete="off" spellcheck="false"></div>
-                <button class="primary-btn btn-save" id="save-new-class">添加至列表</button>
-            </div>
-        </div>
         <div id="view-template-use" class="view-section">
             <div class="view-header">
                 <button class="nav-back-btn"><svg viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>返回</button>
-                <span class="view-title" id="template-use-title">模板名称</span>
-                <button id="edit-template-btn" class="icon-btn" title="编辑模板" style="margin-left: auto;">
-                    <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                </button>
+                <span class="view-title">使用模板</span>
             </div>
-            <div class="form-container" style="overflow: visible;">
-                <p id="template-use-desc" style="color: var(--text-sub); font-size:13px; margin-bottom:16px;"></p>
-                <div id="template-use-controls-list"></div>
+            <div class="form-container container-constraint">
+                <h3 id="template-use-title" style="margin: 0 0 8px 0; font-size: 18px; font-weight: 700; color: var(--text-main);"></h3>
+                <p id="template-use-desc" style="margin: 0 0 20px 0; font-size: 14px; color: var(--text-sub); line-height: 1.5;"></p>
+                <div id="template-use-controls-list" style="display: flex; flex-direction: column; gap: 16px;"></div>
             </div>
         </div>
+
         <div id="view-custom" class="view-section">
             <div class="view-header">
                 <button class="nav-back-btn"><svg viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>返回</button>
-                <span class="view-title">自定义模板</span>
-                <button id="refresh-custom-btn" class="icon-btn" title="刷新控件列表" style="margin-left: auto;">
-                    <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
-                </button>
+                <span class="view-title">配置模板</span>
             </div>
-            <div class="form-container" style="overflow: visible;">
-
+            <div class="form-container container-constraint">
                 <div class="input-group">
                     <label>模板标题</label>
-                    <input type="text" id="custom-template-title" placeholder="例如：新教案模板" autocomplete="off" spellcheck="false">
+                    <input type="text" id="custom-template-title" placeholder="" autocomplete="off" spellcheck="false">
                 </div>
                 <div class="input-group">
                     <label>模板描述</label>
-                    <input type="text" id="custom-template-desc" placeholder="简要描述此模板的用途" autocomplete="off" spellcheck="false">
+                    <textarea id="custom-template-desc" rows="3" placeholder="" autocomplete="off" spellcheck="false"></textarea>
                 </div>
-
-                <div id="custom-empty-state" style="display: none; text-align: center; padding: 40px 20px;">
-                    <svg viewBox="0 0 24 24" width="48" height="48" stroke="var(--text-sub)" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
-                    <p style="color: var(--text-sub); font-size: 14px; margin-top: 16px;">未检测到内容控件<br>请在 Word 的「开发工具」中插入内容控件，并设置标记。</p>
+                <div class="input-group" style="display:flex; flex-direction:row; align-items:center; justify-content:space-between; margin-top: 24px;">
+                    <label style="margin:0; font-size: 15px; font-weight: 600;">控件列表</label>
+                    <button id="refresh-custom-btn" class="icon-btn ios-action-btn" title="检测文档控件">
+                        <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+                    </button>
                 </div>
-                <div id="custom-controls-list" style="display: none;"></div>
-                <button id="save-template-btn" class="primary-btn btn-save" style="margin-top:16px;">保存模板</button>
+                <div id="custom-empty-state" style="text-align: center; padding: 40px 20px;">
+                    <svg viewBox="0 0 24 24" width="56" height="56" stroke="#C7C7CC" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+                    <p style="color: var(--text-sub); font-size: 14px; margin-top: 16px; line-height: 1.5;">未检测到内容控件</p>
+                </div>
+                <div id="custom-controls-list" style="display: none; margin-top: 12px;"></div>
+                <button id="save-template-btn" class="primary-btn btn-save action-shadow" style="margin-top:24px;">保存配置</button>
             </div>
         </div>
-    </div> 
+
+        <div id="view-add-class" class="view-section">
+            <div class="view-header"><button class="nav-back-btn"><svg viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>返回</button><span class="view-title">添加班级</span></div>
+            <div class="form-container container-constraint">
+                <div class="input-group"><label>班级名称</label><input type="text" id="new-class-input" placeholder="" autocomplete="off" spellcheck="false"></div>
+                <button class="primary-btn btn-save" id="save-new-class" style="margin-top: 16px;">写入列表</button>
+            </div>
+        </div>
+
+        <div id="view-add-course" class="view-section">
+            <div class="view-header"><button class="nav-back-btn"><svg viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>返回</button><span class="view-title">添加课程</span></div>
+            <div class="form-container container-constraint">
+                <div class="input-group"><label>课程名称</label><input type="text" id="new-course-input" placeholder="" autocomplete="off" spellcheck="false"></div>
+                <button class="primary-btn btn-save" id="save-new-course" style="margin-top: 16px;">写入列表</button>
+            </div>
+        </div>
+    </div>
+
     <div id="modal-overlay" class="modal-overlay">
         <div id="img-desc-modal" class="modal-content">
-            <h3>图片简述</h3>
+            <h3 style="font-weight: 700; font-size: 18px;">辅助描述</h3>
             <div class="input-group">
-                <label>帮助大模型理解该图片的教学用途</label>
-                <input type="text" id="current-img-desc" placeholder="例如：行星齿轮结构图..." autocomplete="off" spellcheck="false">
+                <label>用于提供给模型解析</label>
+                <input type="text" id="current-img-desc" placeholder="" autocomplete="off" spellcheck="false">
                 <input type="hidden" id="current-img-id">
             </div>
             <div class="modal-actions">
@@ -310,9 +350,9 @@
         </div>
     </div>
 
-    <div id="dev-toast" class="dev-toast">该模块正在开发中...</div>
+    <div id="dev-toast" class="dev-toast">开发中...</div>
 
-    <script src="Home.js"></script>
     <script src="custom.js"></script>
+    <script src="Home.js"></script>
 </body>
 </html>
