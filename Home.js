@@ -40,8 +40,25 @@ Office.onReady(function (info) {
         }
     } catch (e) { }
 
-    if (targetView === "view-excel-main" && currentHost === Office.HostType.Word) targetView = "view-home";
-    if (targetView === "view-main" && currentHost === Office.HostType.Excel) targetView = "view-home";
+    // 🌟 核心修复：强行隔离双平台视图，防止因为存错数据导致的卡死
+    if (currentHost === Office.HostType.Word) {
+        if (targetView === "view-excel-main") targetView = "view-home";
+    } else if (currentHost === Office.HostType.Excel) {
+        if (targetView === "view-main") targetView = "view-home";
+    }
+
+    // 🌟 如果默认是自定义页面，且已有模板数据，直接穿透到“使用”页面
+    if (targetView === "view-custom") {
+        try {
+            var storedData = localStorage.getItem("schema_config");
+            if (storedData) {
+                var pData = JSON.parse(storedData);
+                if (pData.customTemplateData && pData.customTemplateData.controlsConfig && Object.keys(pData.customTemplateData.controlsConfig).length > 0) {
+                    targetView = "view-template-use";
+                }
+            }
+        } catch (e) { }
+    }
 
     var targetEl = document.getElementById(targetView);
     if (!targetEl) targetView = "view-home";
@@ -63,6 +80,13 @@ Office.onReady(function (info) {
             initStorageDeferred();
             initUIEvents();
             initDragToLoad();
+
+            // 🌟 修复：如果设为了自定义页面，确保进入时内容能被顺利加载
+            if (targetView === "view-template-use" && typeof renderTemplateUseView === 'function') {
+                renderTemplateUseView();
+            } else if (targetView === "view-custom" && typeof refreshCustomView === 'function') {
+                refreshCustomView();
+            }
         }, 10);
     });
 });
@@ -131,6 +155,9 @@ function switchView(viewId) {
 
     if (viewId === "view-excel-main") {
         renderExcelDailyForms();
+    } else if (viewId === "view-home") {
+        // 每次切回主页时，重新渲染自定义模板的专属卡片
+        renderSavedTemplateCards();
     }
 }
 
@@ -143,7 +170,7 @@ function initStorageDeferred() {
             if (Array.isArray(CONFIG.classes)) {
                 CONFIG.classes = CONFIG.classes.filter(function (c) { return c && String(c).trim() !== ""; });
             } else { CONFIG.classes = []; }
-            // 追加读取持久化的自定义课程
+
             if (Array.isArray(CONFIG.courses)) {
                 CONFIG.courses = CONFIG.courses.filter(function (c) { return c && String(c).trim() !== ""; });
             } else { CONFIG.courses = []; }
@@ -174,12 +201,34 @@ function initStorageDeferred() {
         var viewSelect = document.getElementById("setting-default-view");
         if (viewSelect) {
             viewSelect.innerHTML = "";
-            AVAILABLE_VIEWS.forEach(function (v) {
+
+            var allowedViews = [{ id: "view-home", name: "主页" }];
+            // 🌟 核心判断：是否有可用的自定义模板数据
+            var hasCustom = (CONFIG.customTemplateData && CONFIG.customTemplateData.controlsConfig && Object.keys(CONFIG.customTemplateData.controlsConfig).length > 0);
+
+            if (currentHost === Office.HostType.Word) {
+                allowedViews.push({ id: "view-main", name: "教案生成页面" });
+                // 如果有，才把它的真实名字加入下拉选项
+                if (hasCustom) {
+                    allowedViews.push({ id: "view-template-use", name: CONFIG.customTemplateData.title || "自定义模板" });
+                }
+            } else if (currentHost === Office.HostType.Excel) {
+                allowedViews.push({ id: "view-excel-main", name: "授课日志页面" });
+                if (hasCustom) {
+                    allowedViews.push({ id: "view-template-use", name: CONFIG.customTemplateData.title || "自定义模板" });
+                }
+            }
+
+            allowedViews.forEach(function (v) {
                 var opt = document.createElement("option");
-                opt.value = v.id; opt.innerText = v.name;
+                opt.value = v.id;
+                opt.innerText = v.name;
                 viewSelect.appendChild(opt);
             });
-            viewSelect.value = CONFIG.defaultView || "view-home";
+
+            var isValid = allowedViews.find(function (v) { return v.id === CONFIG.defaultView; });
+            CONFIG.defaultView = isValid ? CONFIG.defaultView : "view-home";
+            viewSelect.value = CONFIG.defaultView;
         }
     } catch (e) { }
 
@@ -202,10 +251,11 @@ function initStorageDeferred() {
                 }
             }
         }
-        renderClassDropdown();
         renderCourseDropdown();
+        renderClassDropdown();
         renderTimetableUI();
         renderExpectedStudentsUI();
+        renderSavedTemplateCards(); // 🌟 初始化时渲染主页专属卡片
         if (lastRootView === "view-excel-main") {
             renderExcelDailyForms();
         }
@@ -325,7 +375,6 @@ function initUIEvents() {
     var cardCustom = document.getElementById("card-custom");
     if (cardCustom) {
         cardCustom.addEventListener("click", function () {
-            // Excel 环境拦截弹窗
             if (currentHost === Office.HostType.Excel) {
                 var devToast = document.getElementById("dev-toast");
                 if (devToast) {
@@ -334,14 +383,9 @@ function initUIEvents() {
                 }
                 return;
             }
-            // Word 环境正常进入
-            if (CONFIG.customTemplateData && CONFIG.customTemplateData.controlsConfig && Object.keys(CONFIG.customTemplateData.controlsConfig).length > 0) {
-                if (typeof renderTemplateUseView === 'function') renderTemplateUseView();
-                switchView("view-template-use");
-            } else {
-                if (typeof refreshCustomView === 'function') refreshCustomView();
-                switchView("view-custom");
-            }
+            // 🌟 首页固定的灰白卡片，永远只用来进入【配置】界面
+            if (typeof refreshCustomView === 'function') refreshCustomView();
+            switchView("view-custom");
         });
     }
 
@@ -1002,7 +1046,8 @@ async function handleExcelGenerate() {
     var pbBar = document.getElementById("excel-progress-bar");
     var showProgress = function (w) { if (pbContainer) pbContainer.style.display = 'block'; if (pbBar) pbBar.style.width = w + '%'; };
 
-    safeShowStatus("正在推演本月排课日历...", "info");
+    var modelNameDisplay = CONFIG.model || "AI模型";
+
     showProgress(10);
 
     try {
@@ -1012,7 +1057,6 @@ async function handleExcelGenerate() {
         var startDate = new Date(y, m - 1, 1);
         var endDate = new Date(y, m, 0);
 
-        // 🌟 获取全年的节假日与调休配置（自带缓存，秒回）
         var holidayMap = await getHolidayConfig(y);
 
         if (!CONFIG.excelDailySettingsMap) CONFIG.excelDailySettingsMap = {};
@@ -1023,23 +1067,19 @@ async function handleExcelGenerate() {
             var wd = currentD.getDay();
             var dateStr = currentD.getFullYear() + "." + (currentD.getMonth() + 1) + "." + currentD.getDate();
 
-            // 🌟 智能判断今天是否为工作日
             var isWorkday = false;
             if (holidayMap[dateStr] === "holiday") {
-                isWorkday = false; // 法定节假日，不上课
+                isWorkday = false;
             } else if (holidayMap[dateStr] === "workday") {
-                isWorkday = true;  // 调休补班，就算是周末也要上课
+                isWorkday = true;
             } else {
-                // 没有特殊标记的日子，走常规双休逻辑
                 if (wd >= 1 && wd <= 5) {
                     isWorkday = true;
                 }
             }
 
-            // 如果今天不上课，直接跳过当前循环，去排明天
             if (!isWorkday) continue;
 
-            // 如果遇到周末调休补班，默认借用周五的课表（安全兜底策略）
             var dayIndex = (wd === 0 || wd === 6) ? 4 : wd - 1;
 
             var uniqueDayLessons = [];
@@ -1075,7 +1115,6 @@ async function handleExcelGenerate() {
                     randomActual = Math.floor(Math.random() * (max - min + 1)) + min;
                 }
 
-                // 把这节课推入月度总表中
                 monthSchedule.push({
                     dateStr: dateStr,
                     course: lesson.course,
@@ -1096,6 +1135,7 @@ async function handleExcelGenerate() {
             groups[key].push(target);
         });
 
+        // 🌟 统一文案，调用刚刚声明的变量
         safeShowStatus("等待 " + modelNameDisplay + " 响应...", "info");
         showProgress(30);
 
@@ -1114,6 +1154,7 @@ async function handleExcelGenerate() {
 
         await Promise.all(fetchPromises);
 
+
         safeShowStatus("写入表格中...", "info");
         showProgress(80);
 
@@ -1123,7 +1164,7 @@ async function handleExcelGenerate() {
             var now = new Date();
             var y = now.getFullYear();
             var m = now.getMonth() + 1;
-            headerRange.values = [["授课专业：" + CONFIG.major + "          授课教师：" + CONFIG.teacher + "          " + y + " 年 " + m + " 月"]];
+            headerRange.values = [["授课专业：" + CONFIG.major + "                    授课教师：" + CONFIG.teacher + "                    " + y + " 年 " + m + " 月"]];
 
             var writeData = [];
             monthSchedule.forEach(function (item) {
@@ -1144,7 +1185,7 @@ async function handleExcelGenerate() {
             if (writeData.length > 0) {
                 var startRow = 4;
                 var clearRange = sheet.getRange("A5:J505");
-                clearRange.clear("Contents"); // 仅擦除数据，保留边框
+                clearRange.clear("Contents");
 
                 var targetRange = sheet.getRangeByIndexes(startRow, 0, writeData.length, 10);
                 targetRange.values = writeData;
@@ -2139,7 +2180,59 @@ async function getHolidayConfig(year) {
         // 5. 只有失败的时候才会给用户提示
         console.warn("节假日 API 同步失败，降级为常规双休模式", error);
         var statusEl = document.getElementById("excel-status-msg");
-        if (statusEl) statusEl.innerHTML = "<span class='status-warn'>同步节假日失败，已降级为常规工作日排课</span>";
+        if (statusEl) statusEl.innerHTML = "<span class='status-warn'>同步节假日失败，已降级为常规工作日</span>";
         return {}; // 失败时返回空对象，走默认双休逻辑
+    }
+}
+// 🌟 动态渲染用户已保存的专属模板卡片
+function renderSavedTemplateCards() {
+    var grid = document.querySelector("#view-home .template-grid");
+    if (!grid) return;
+
+    // 清除已有的动态卡片，防止重复
+    var existingCards = grid.querySelectorAll(".template-card.saved-template");
+    existingCards.forEach(function (c) { c.remove(); });
+
+    var hasCustom = (CONFIG.customTemplateData && CONFIG.customTemplateData.controlsConfig && Object.keys(CONFIG.customTemplateData.controlsConfig).length > 0);
+
+    if (hasCustom) {
+        var card = document.createElement("div");
+        card.className = "template-card saved-template";
+        card.style.order = "-1"; // 永远排在最前面
+
+        var title = CONFIG.customTemplateData.title || "自定义模板";
+        var desc = CONFIG.customTemplateData.desc || "点击使用该模板";
+
+        card.innerHTML =
+            "<div style='position:relative;'>" +
+            "<div class='card-icon' style='color: var(--success-color);'>" +
+            "<svg viewBox='0 0 24 24'><rect x='3' y='3' width='18' height='18' rx='2' ry='2'></rect><line x1='3' y1='9' x2='21' y2='9'></line><line x1='9' y1='21' x2='9' y2='9'></line></svg>" +
+            "</div>" +
+            "<button class='delete-template-btn' title='删除模板'>" +
+            "<svg viewBox='0 0 24 24' width='16' height='16' stroke='currentColor' stroke-width='2' fill='none' stroke-linecap='round'><line x1='18' y1='6' x2='6' y2='18'/><line x1='6' y1='6' x2='18' y2='18'/></svg>" +
+            "</button>" +
+            "</div>" +
+            "<h3 style='margin: 0 0 6px 0; font-size: 13px; font-weight: 600; color: var(--text-main);'>" + title + "</h3>" +
+            "<p style='margin: 0; font-size: 12px; color: var(--text-sub); line-height: 1.4;'>" + desc + "</p>";
+
+        var delBtn = card.querySelector('.delete-template-btn');
+        if (delBtn) {
+            delBtn.addEventListener('click', function (e) {
+                e.stopPropagation();
+                // 删除数据并重置 UI
+                CONFIG.customTemplateData = null;
+                saveStorage();
+                renderSavedTemplateCards();
+                initStorageDeferred(); // 重新刷新下拉框配置
+            });
+        }
+
+        // 点击卡片本体进入【使用】界面
+        card.addEventListener("click", function () {
+            if (typeof renderTemplateUseView === 'function') renderTemplateUseView();
+            switchView("view-template-use");
+        });
+
+        grid.appendChild(card);
     }
 }
