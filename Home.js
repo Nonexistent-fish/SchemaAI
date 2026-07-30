@@ -95,17 +95,25 @@ function injectCustomStyles() {
     if (document.getElementById("schemaai-custom-styles")) return;
     var style = document.createElement("style");
     style.id = "schemaai-custom-styles";
-    style.innerHTML = ".image-item .img-delete { opacity: 0; background-color: #ffffff; transition: all 0.2s ease; border-radius: 50%; cursor: pointer; } .image-item:hover .img-delete { opacity: 1; } .image-item .img-delete:hover { background-color: #ff3b30 !important; } .image-item .img-delete:hover svg line { stroke: #ffffff !important; }";
+    // 🌟 增加了 .topic-search-btn 的显示/隐藏逻辑
+    style.innerHTML = ".image-item .img-delete { opacity: 0; background-color: #ffffff; transition: all 0.2s ease; border-radius: 50%; cursor: pointer; } .image-item:hover .img-delete { opacity: 1; } .image-item .img-delete:hover { background-color: #ff3b30 !important; } .image-item .img-delete:hover svg line { stroke: #ffffff !important; } " +
+        ".topic-search-btn { display: none; } " +
+        ".topic-item.selected .topic-search-btn { display: flex; align-items: center; justify-content: center; }";
     document.head.appendChild(style);
 }
 
 function updateNamingOptions() {
+    // 🌟 核心修复：在数组的最前面增加一个 "无" 选项
     var options = currentHost === Office.HostType.Excel
-        ? ["教师授课日志", "授课专业", "授课教师", "日期"]
-        : ["课题", "授课教师", "日期", "教学目的"];
+        ? ["无", "教师授课日志", "授课专业", "授课教师", "日期"]
+        : ["无", "课题", "授课教师", "日期", "教学目的"];
 
     document.querySelectorAll(".naming-combo-list").forEach(function (list) {
-        list.innerHTML = options.map(function (opt) { return "<div class='naming-combo-item'>" + opt + "</div>"; }).join("");
+        list.innerHTML = options.map(function (opt) {
+            // 选“无”的时候给个变灰样式区分
+            var styleStr = opt === "无" ? "style='color:var(--text-sub); font-style:italic;'" : "";
+            return "<div class='naming-combo-item' " + styleStr + ">" + opt + "</div>";
+        }).join("");
     });
     bindNamingComboEvents();
 }
@@ -125,13 +133,14 @@ function bindNamingComboEvents() {
         list.querySelectorAll(".naming-combo-item").forEach(function (item) {
             item.onclick = function (e) {
                 e.stopPropagation();
-                input.value = item.innerText;
+                var text = item.innerText;
+                // 🌟 核心修复：如果用户点击了“无”，则将输入框设为真正的空白
+                input.value = text === "无" ? "" : text;
                 list.classList.remove("show");
             };
         });
     });
 }
-
 function showStatus(text, type) {
     type = type || "info";
     var el = document.getElementById("status-msg");
@@ -280,6 +289,25 @@ function initUIEvents() {
     var saveExcelBtn = document.getElementById("save-excel-btn");
     if (saveExcelBtn) saveExcelBtn.addEventListener("click", handleExcelSaveDocument);
 
+    // 🌟 修复3：课题搜索按钮点击事件
+    var searchTopicBtn = document.getElementById("search-topic-btn");
+    if (searchTopicBtn) {
+        searchTopicBtn.addEventListener("click", function (e) {
+            e.preventDefault();
+            var topicInput = document.getElementById("topic");
+            var courseInput = document.getElementById("course");
+            var topic = topicInput ? topicInput.value.trim() : "";
+            var course = courseInput ? courseInput.value.trim() : "";
+
+            if (!topic && !course) {
+                showStatus("请先输入课题或课程", "warn");
+                return;
+            }
+            var query = encodeURIComponent((course + " " + topic).trim() + " 教案参考");
+            window.open("https://www.bing.com/search?q=" + query, "_blank");
+        });
+    }
+
     var aiTopicBtn = document.getElementById("ai-topic-btn");
     if (aiTopicBtn) {
         aiTopicBtn.addEventListener("click", function () {
@@ -367,6 +395,9 @@ function initUIEvents() {
             if (currentHost === Office.HostType.Excel) {
                 switchView("view-excel-main");
             } else {
+                // 🌟 修复1：进入教案生成页面前，强制刷新下拉框数据，确保直接同步课表
+                if (typeof renderCourseDropdown === 'function') renderCourseDropdown();
+                if (typeof renderClassDropdown === 'function') renderClassDropdown();
                 switchView("view-main");
             }
         });
@@ -587,7 +618,10 @@ function initUIEvents() {
 
     var addImgBtn = document.getElementById("add-img-btn");
     if (addImgBtn) {
-        addImgBtn.addEventListener("click", function () { document.getElementById("img-upload-input")?.click(); });
+        addImgBtn.addEventListener("click", function () {
+            var input = document.getElementById("img-upload-input");
+            if (input) input.click();
+        });
     }
 
     var imgUploadInput = document.getElementById("img-upload-input");
@@ -614,8 +648,10 @@ function initUIEvents() {
     var saveImgDescBtn = document.getElementById("save-img-desc");
     if (saveImgDescBtn) {
         saveImgDescBtn.addEventListener("click", function () {
-            var id = document.getElementById("current-img-id")?.value;
-            var desc = document.getElementById("current-img-desc")?.value.trim();
+            var idEl = document.getElementById("current-img-id");
+            var descEl = document.getElementById("current-img-desc");
+            var id = idEl ? idEl.value : "";
+            var desc = descEl ? descEl.value.trim() : "";
             var img = uploadedImages.find(function (i) { return i.id === id; });
             if (img) img.desc = desc;
             if (overlay) overlay.classList.remove("open");
@@ -1474,46 +1510,27 @@ async function fetchAndRenderTopics(targetCount, isDragging) {
             temperature: 0.3
         };
 
-        if (isDeepSeek && !isReasoner) {
-            requestBody.response_format = { type: "json_object" };
-        }
+        if (isDeepSeek && !isReasoner) requestBody.response_format = { type: "json_object" };
+        if (isDeepSeekV4) requestBody.thinking = { type: "disabled" };
 
-        if (isDeepSeekV4) {
-            requestBody.thinking = { type: "disabled" };
-        }
-
-        var response = await fetch(CONFIG.url, {
-            method: "POST",
-            headers: headers,
-            body: JSON.stringify(requestBody)
-        });
-
-        if (!response.ok) {
-            throw new Error("接口错误 (" + response.status + ")");
-        }
+        var response = await fetch(CONFIG.url, { method: "POST", headers: headers, body: JSON.stringify(requestBody) });
+        if (!response.ok) throw new Error("接口错误 (" + response.status + ")");
 
         var rawText = (await response.json()).choices[0].message.content;
-
         rawText = rawText.replace(/<think>[\s\S]*?<\/think>/g, "").trim();
-        rawText = rawText.replace(/\x60\x60\x60json/gi, "").replace(/\x60\x60\x60/g, "").trim();
+        rawText = rawText.replace(/\x60{3}json|\x60{3}/gi, "").trim();
 
         if (rawText.startsWith("{")) {
             var obj = JSON.parse(rawText);
             var array = obj.topics || obj.items || obj.courses || Object.values(obj).find(Array.isArray);
-            if (Array.isArray(array)) {
-                rawText = JSON.stringify(array);
-            } else {
-                throw new Error("JSON对象未找到数组");
-            }
+            if (Array.isArray(array)) rawText = JSON.stringify(array);
+            else throw new Error("JSON对象未找到数组");
         }
 
         if (!rawText.startsWith("[")) {
             var arrMatch = rawText.match(/\[([\s\S]*)\]/);
-            if (arrMatch) {
-                rawText = "[" + arrMatch[1] + "]";
-            } else {
-                throw new Error("未找到有效数组");
-            }
+            if (arrMatch) rawText = "[" + arrMatch[1] + "]";
+            else throw new Error("未找到有效数组");
         }
 
         generatedTopics = JSON.parse(rawText);
@@ -1524,12 +1541,28 @@ async function fetchAndRenderTopics(targetCount, isDragging) {
             generatedTopics.forEach(function (text, index) {
                 var item = document.createElement("div");
                 item.className = "topic-item placeholder";
+                var cleanText = text.replace(/\*\*/g, "").replace(/\*/g, "");
+
                 setTimeout(function () {
                     item.className = "topic-item slide-in selected";
                     if (index > 0) item.classList.remove("selected");
                     item.style.animationDelay = (index * 0.05) + "s";
-                    item.innerText = text.replace(/\*\*/g, "").replace(/\*/g, "");
+
+                    // 🌟 核心修改：深绿色跳转图标（stroke='#059669'）
+                    item.innerHTML = "<span class='topic-text-span' style='flex:1; pointer-events:none;'>" + cleanText + "</span>" +
+                        "<button class='topic-search-btn' title='搜图片辅料' style='padding:4px; margin-left:8px; z-index:2; background:none; border:none; cursor:pointer;'><svg viewBox='0 0 24 24' width='16' height='16' stroke='#059669' stroke-width='2' fill='none' stroke-linecap='round' stroke-linejoin='round'><path d='M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6'></path><polyline points='15 3 21 3 21 9'></polyline><line x1='10' y1='14' x2='21' y2='3'></line></svg></button>";
+
+                    var searchBtn = item.querySelector('.topic-search-btn');
+                    if (searchBtn) {
+                        searchBtn.onclick = function (e) {
+                            e.stopPropagation();
+                            // 🌟 核心修改：直接去必应搜纯粹的“图片”，关键词只有 cleanText
+                            var query = encodeURIComponent(cleanText);
+                            window.open("https://www.bing.com/images/search?q=" + query, "_blank");
+                        };
+                    }
                 }, 50);
+
                 item.onclick = function () {
                     document.querySelectorAll(".topic-item").forEach(function (el) { el.classList.remove("selected"); });
                     item.classList.add("selected");
@@ -1586,7 +1619,21 @@ function initDragToLoad() {
                 var item = document.createElement("div");
                 item.className = "topic-item";
                 if (index === 0) item.classList.add("selected");
-                item.innerText = text;
+                var cleanText = text.replace(/\*\*/g, "").replace(/\*/g, "");
+
+                // 🌟 同上，只保留深绿色外链图标
+                item.innerHTML = "<span class='topic-text-span' style='flex:1; pointer-events:none;'>" + cleanText + "</span>" +
+                    "<button class='topic-search-btn' title='搜图片辅料' style='padding:4px; margin-left:8px; z-index:2; background:none; border:none; cursor:pointer;'><svg viewBox='0 0 24 24' width='16' height='16' stroke='#059669' stroke-width='2' fill='none' stroke-linecap='round' stroke-linejoin='round'><path d='M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6'></path><polyline points='15 3 21 3 21 9'></polyline><line x1='10' y1='14' x2='21' y2='3'></line></svg></button>";
+
+                var searchBtn = item.querySelector('.topic-search-btn');
+                if (searchBtn) {
+                    searchBtn.onclick = function (e) {
+                        e.stopPropagation();
+                        var query = encodeURIComponent(cleanText);
+                        window.open("https://www.bing.com/images/search?q=" + query, "_blank");
+                    };
+                }
+
                 item.onclick = function () {
                     document.querySelectorAll(".topic-item").forEach(function (el) { el.classList.remove("selected"); });
                     item.classList.add("selected");
@@ -1626,7 +1673,10 @@ async function handleGenerate() {
     var saveBtn = document.getElementById("save-doc-btn");
     var selectedItem = document.querySelector(".topic-item.selected");
     var topicEl = document.getElementById("topic");
-    var finalTopic = selectedItem ? selectedItem.innerText : (topicEl ? topicEl.value : "");
+
+    // 🌟 只读取 span 里面的纯文本，过滤掉放大镜按钮里的隐藏字符
+    var selectedSpan = selectedItem ? selectedItem.querySelector(".topic-text-span") : null;
+    var finalTopic = selectedSpan ? selectedSpan.innerText.trim() : (topicEl ? topicEl.value : "");
 
     clearStatus();
     if (saveBtn) saveBtn.classList.remove("show");
