@@ -1,0 +1,16 @@
+{
+  "name": "schema-ai-addin",
+  "version": "1.0.0",
+  "description": "SchemaAI Office Web Add-in for Word and Excel",
+  "scripts": {
+    "serve": "http-server -S -C \"%USERPROFILE%/.office-addin-dev-certs/localhost.crt\" -K \"%USERPROFILE%/.office-addin-dev-certs/localhost.key\" --cors -p 3000 -c-1",
+    "start:word": "office-addin-debugging start manifest.xml desktop --app word",
+    "start:excel": "office-addin-debugging start manifest.xml desktop --app excel",
+    "stop": "office-addin-debugging stop manifest.xml"
+  },
+  "devDependencies": {
+    "http-server": "^14.1.1",
+    "office-addin-debugging": "^6.0.0",
+    "office-addin-dev-certs": "^2.0.0"
+  }
+}
